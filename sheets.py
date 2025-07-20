@@ -18,7 +18,8 @@ print("GOOGLE_SHEETS_CREDENTIALS_JSON:", SERVICE_ACCOUNT_JSON is not None)
 
 if SERVICE_ACCOUNT_JSON:
     creds_dict = json.loads(SERVICE_ACCOUNT_JSON)
-    credentials = service_account.Credentials.from_service_account_info(creds_dict)
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    credentials = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
     gc = gspread.authorize(credentials)
 else:
     gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
