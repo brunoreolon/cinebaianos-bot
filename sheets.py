@@ -41,7 +41,7 @@ def adicionar_filme_na_planilha(titulo, aba, coluna, voto=None):
     # Começa na linha 2 para ignorar o cabeçalho
     linha = len(col_b) + 1 if len(col_b) >= 2 else 2
 
-    logging.info(f"Inserindo filme na linha {linha}: {titulo}")
+    logging.info(f"Inserindo filme na aba: {aba}, linha {linha}: {titulo}")
 
     # Escreve o título na coluna B
     aba_obj.update_cell(linha, 2, titulo)
@@ -58,6 +58,8 @@ def adicionar_filme_na_planilha(titulo, aba, coluna, voto=None):
     if voto and coluna_alvo in colunas_limpas:
         index_coluna = colunas_limpas.index(coluna_alvo) + 1
         aba_obj.update_cell(linha, index_coluna, voto)
+    elif not voto:
+        logging.info("📝 Nenhum voto informado. Apenas adicionando o filme.")
     else:
         logging.info(f"⚠️ Coluna '{coluna}' não encontrada no cabeçalho: {cabecalho}")
 
