@@ -10,7 +10,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-from db import criar_tabelas, registrar_usuario, buscar_usuario, registrar_voto, adicionar_filme, buscar_filme_por_linha, buscar_filmes_por_usuario, buscar_todos_os_filmes, buscar_todos_os_usuarios, contar_votos_recebidos_todos_usuario, contar_todos_os_votos_por_usuario, contar_generos_mais_assistidos, contar_generos_da_hora, contar_generos_lixo, contar_generos_por_usuario
+from db import criar_tabelas, registrar_usuario, buscar_usuario, registrar_voto, adicionar_filme, buscar_filmes_por_usuario, buscar_todos_os_filmes, buscar_todos_os_usuarios, contar_votos_recebidos_todos_usuario, contar_todos_os_votos_por_usuario, contar_generos_mais_assistidos, contar_generos_da_hora, contar_generos_lixo, contar_generos_por_usuario, buscar_filme_por_id
 from tmdb import buscar_detalhes_filme
 from sheets import adicionar_filme_na_planilha, escrever_voto_na_planilha
 from sincronizar_filmes import sincronizar_planilha
@@ -202,21 +202,21 @@ async def adicionar(ctx, *, args=None):
     if voto:
         embed.add_field(name="Seu voto", value=voto_texto, inline=False)
 
-    embed.set_footer(text=f"ID na planilha: {linha}")
+    embed.set_footer(text=f"ID na planilha: {linha}\nID do Filme: {id_filme}")
     await ctx.send(embed=embed)
 
 @bot.command(name="votar")
-async def votar(ctx, id_linha: int = None, voto: int = None):
-    usuario = buscar_usuario(str(ctx.author.id))
-    if not usuario:
+async def votar(ctx, id_filme: int = None, voto: int = None):
+    usuario_votante = buscar_usuario(str(ctx.author.id))
+    if not usuario_votante:
         await ctx.send("❌ Você precisa se registrar primeiro com:\n`!registrar <aba> <coluna>`")
         return
 
     # Validação dos argumentos
-    if id_linha is None or voto is None:
+    if id_filme is None or voto is None:
         await ctx.send(
             "❌ Uso incorreto do comando.\n"
-            "Formato correto:\n`!votar <id_linha> <voto>`\n\n"
+            "Formato correto:\n`!votar <id_filme> <voto>`\n\n"
             "**Votos possíveis:**\n"
             "`1 - DA HORA`\n"
             "`2 - LIXO`\n"
@@ -234,21 +234,29 @@ async def votar(ctx, id_linha: int = None, voto: int = None):
         await ctx.send("⚠️ Voto inválido. Use:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
         return
 
-    aba, coluna = usuario[2], usuario[3]
+    id_votante = usuario_votante[0]
+    coluna_votante = usuario_votante[3]
     voto_texto = VOTOS_MAPA[voto]
 
-    sucesso = escrever_voto_na_planilha(aba, id_linha, coluna, voto_texto)
-    if not sucesso:
-        await ctx.send("❌ Erro ao registrar o voto na planilha. Verifique se o ID da linha e a aba estão corretos.")
-        return
+    filme = buscar_filme_por_id(id_filme)
 
-    filme = buscar_filme_por_linha(id_linha)
     if not filme:
         await ctx.send("⚠️ Filme não encontrado no banco. Ele pode ter sido adicionado manualmente ou fora do sistema.")
         return
 
     id_filme = filme[0]
-    registrar_voto(id_filme=id_filme, id_responsavel=filme[2], id_votante=usuario[0], voto=voto_texto)
+    id_responsavel = filme[2]
+    id_linha = filme[3]
+
+    usario_responsavel_filme = buscar_usuario(id_responsavel)
+    aba_responsavel = usario_responsavel_filme[2]
+
+    sucesso = escrever_voto_na_planilha(aba_responsavel, id_linha, coluna_votante, voto_texto)
+    if not sucesso:
+        await ctx.send("❌ Erro ao registrar o voto na planilha. Verifique se o ID da linha e a aba estão corretos.")
+        return
+
+    registrar_voto(id_filme=id_filme, id_responsavel=id_responsavel, id_votante=id_votante, voto=voto_texto)
     await ctx.send(f"✅ Voto registrado com sucesso!\n🎬 Filme: `{filme[1]}`\n🗳️ Voto: **{voto_texto}**")
 
 @bot.command(name="filmes")
@@ -303,7 +311,7 @@ async def listar_filmes_embed(ctx, membro_obj=None):
             nome = usuario[1] if usuario else "Desconhecido"
             msg += f"\n👤 **{nome}:**\n"
             for filme in filmes:
-                msg += f"`{filme[3]}` - {filme[1]} ({filme[5]})\n"
+                msg += f"`{filme[0]}` - {filme[1]} ({filme[5]})\n"
 
         await ctx.send(msg)
 
@@ -511,6 +519,20 @@ async def perfil_error(ctx, error):
 async def sincronizar_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("❌ Você não tem permissão para usar este comando. Apenas administradores podem sincronizar a planilha.")
+    else:
+        raise error
+    
+@bot.event
+async def on_command_error(ctx, error):
+    if hasattr(ctx.command, 'on_error'):
+        return
+
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("❌ Esse comando não existe. Use `!comandos` para ver a lista de comandos.")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("⚠️ Faltou um argumento necessário. Verifique a forma correta com `!comandos`.")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send("⚠️ Argumento inválido. Confira se digitou corretamente.")
     else:
         raise error
 
