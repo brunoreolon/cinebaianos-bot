@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import os
+import logging
 
 from db import criar_tabelas, registrar_usuario, buscar_usuario, registrar_voto, adicionar_filme, buscar_filme_por_linha, buscar_filmes_por_usuario, buscar_todos_os_filmes, buscar_todos_os_usuarios, contar_votos_recebidos_todos_usuario, contar_todos_os_votos_por_usuario, contar_generos_mais_assistidos, contar_generos_da_hora, contar_generos_lixo, contar_generos_por_usuario
 from tmdb import buscar_detalhes_filme
@@ -23,7 +24,7 @@ criar_tabelas()
 
 @bot.event
 async def on_ready():
-    print(f"✅ Bot conectado como {bot.user}")
+    logging.info(f"✅ Bot conectado como {bot.user}")
 
 @bot.command(name="comandos")
 async def comandos(ctx):

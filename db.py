@@ -2,12 +2,13 @@
 import sqlite3
 import os
 from datetime import datetime
+import logging
 
-DB_PATH = "filmes.db"
+DB_PATH = os.getenv("SQLITE_PATH", "filmes.db")
 
 def conectar():
-    caminho = os.path.abspath("filmes.db")
-    # print(f"🔗 Conectando ao banco em: {caminho}")
+    caminho = os.path.abspath(DB_PATH)
+    # logging.info(f"🔗 Conectando ao banco em: {caminho}")
     return sqlite3.connect(DB_PATH)
 
 def criar_tabelas():
