@@ -7,8 +7,7 @@ import logging
 DB_PATH = os.getenv("DATABASE_PATH", "./data/filmes.db")
 
 def conectar():
-    caminho = os.path.abspath(DB_PATH)
-    # logging.info(f"🔗 Conectando ao banco em: {caminho}")
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     return sqlite3.connect(DB_PATH)
 
 def criar_tabelas():
