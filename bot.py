@@ -261,7 +261,7 @@ async def votar(ctx, id_filme: int = None, voto: int = None):
         return
 
     registrar_voto(id_filme=id_filme, id_responsavel=id_responsavel, id_votante=id_votante, voto=voto_texto)
-    await ctx.send(f"✅ Voto registrado com sucesso!\nAba: {aba_responsavel}\n🎬 Filme: `{filme[1]}`\n🗳️ Voto: **{voto_texto}**")
+    await ctx.send(f"✅ Voto registrado com sucesso!\n🗂️ Aba: {aba_responsavel}\n🎬 Filme: `{filme[1]}`\n🗳️ Voto: **{voto_texto}**")
 
 @bot.command(name="filmes")
 async def filmes_cmd(ctx, *, membro: str = None):
