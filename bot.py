@@ -19,12 +19,13 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 # Cria as tabelas ao iniciar
 criar_tabelas()
-
-@bot.event
-async def on_ready():
-    logging.info(f"✅ Bot conectado como {bot.user}")
 
 @bot.command(name="comandos")
 async def comandos(ctx):
@@ -512,5 +513,9 @@ async def sincronizar_error(ctx, error):
         await ctx.send("❌ Você não tem permissão para usar este comando. Apenas administradores podem sincronizar a planilha.")
     else:
         raise error
+
+@bot.event
+async def on_ready():
+    logging.info(f"✅ Bot conectado como {bot.user}")
 
 bot.run(TOKEN)
