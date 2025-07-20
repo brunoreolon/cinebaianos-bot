@@ -2,7 +2,6 @@ discord.py
 gspread
 oauth2client
 requests
-sqlite3
 python-dotenv
 tmdbv3api 
 gspread 
