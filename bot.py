@@ -5,6 +5,11 @@ from dotenv import load_dotenv
 import os
 import logging
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 from db import criar_tabelas, registrar_usuario, buscar_usuario, registrar_voto, adicionar_filme, buscar_filme_por_linha, buscar_filmes_por_usuario, buscar_todos_os_filmes, buscar_todos_os_usuarios, contar_votos_recebidos_todos_usuario, contar_todos_os_votos_por_usuario, contar_generos_mais_assistidos, contar_generos_da_hora, contar_generos_lixo, contar_generos_por_usuario
 from tmdb import buscar_detalhes_filme
 from sheets import adicionar_filme_na_planilha, escrever_voto_na_planilha
@@ -18,11 +23,6 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
 # Cria as tabelas ao iniciar
 criar_tabelas()
