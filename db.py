@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 import logging
 
-DB_PATH = os.getenv("SQLITE_PATH", "filmes.db")
+DB_PATH = os.getenv("DATABASE_PATH", "./data/filmes.db")
 
 def conectar():
     caminho = os.path.abspath(DB_PATH)
