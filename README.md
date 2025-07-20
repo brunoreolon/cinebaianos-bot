@@ -40,7 +40,10 @@ Este é um projeto pessoal feito entre amigos para **organizar, votar e ranquear
 
 ### 🔄 Sincronização
 - `!sincronizar` — Atualiza banco com planilha (admin)
-- `!planilha` — Mostra o link da planilha 📎
+
+### 🔗 Links:
+- `!planilha` — Mostra o link da planilha
+- `!github` — Mostra o link do projeto no GitHub
 
 ---
 

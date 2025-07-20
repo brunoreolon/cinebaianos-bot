@@ -60,9 +60,10 @@ async def comandos(ctx):
 
         "**🔄 Sincronização:**\n"
         "• `!sincronizar` — Sincroniza os dados da planilha com o banco (admin somente)\n\n"
-
+        
         "**📎 Outros:**\n"
-        "• `!planilha` — Exibe o link da planilha de controle de filmes\n\n"
+        "• `!planilha` — Exibe o link da planilha de controle de filmes\n"
+        "• `!github` — Mostra o link do projeto no GitHub\n\n"
     )
     await ctx.send(mensagem)
 
@@ -489,6 +490,10 @@ async def sincronizar(ctx):
         )
     except Exception as e:
         await ctx.send(f"❌ Ocorreu um erro durante a sincronização:\n```{str(e)}```")
+
+@bot.command(name='github')
+async def github(ctx):
+    await ctx.send("🧠 Código-fonte disponível no GitHub:\nhttps://github.com/brunoreolon/bot-discord-cinebaianos")
 
 def membro_valido(arg):
     return isinstance(arg, discord.Member)
