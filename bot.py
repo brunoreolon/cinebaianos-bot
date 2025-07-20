@@ -144,11 +144,15 @@ async def adicionar(ctx, *, args=None):
     }
 
     # Verifica se último argumento é um número de voto
-    if len(partes) == 2 and partes[1].isdigit():
-        nome_com_ano = partes[0]
-        voto = int(partes[1])
-        if voto not in VOTOS_MAPA:
-            await ctx.send("⚠️ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
+    if len(partes) == 2:
+        nome_com_ano, voto_str = partes
+        if voto_str.isdigit():
+            voto = int(voto_str)
+            if voto not in VOTOS_MAPA:
+                await ctx.send("⚠️ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
+                return
+        else:
+            await ctx.send("⚠️ O segundo parâmetro deve ser um número (1, 2 ou 3) representando seu voto.\nExemplo: `!adicionar \"Filme (2020)\" 1`")
             return
     else:
         nome_com_ano = args
@@ -290,7 +294,7 @@ async def listar_filmes_embed(ctx, membro_obj=None):
 
         msg = f"🎬 **Filmes adicionados por {membro_obj.display_name}:**\n"
         for filme in filmes:
-            msg += f"`{filme[3]}` - {filme[1]} ({filme[5]})\n"
+            msg += f"`{filme[0]}` - {filme[1]} ({filme[5]})\n"
         await ctx.send(msg)
     else:
         todos_filmes = buscar_todos_os_filmes()

@@ -86,12 +86,12 @@ def escrever_voto_na_planilha(aba, linha, coluna, voto):
 def ler_todos_os_filmes():
     planilha = get_planilha()
     usuarios = buscar_todos_os_usuarios()  # Deve retornar lista de tuplas: (id, nome, aba, coluna)
-    logging.info(f"\nUsuários encontrados: {usuarios}")
+    logging.info(f"Usuários encontrados: {usuarios}\n")
 
     filmes_encontrados = []
 
     for usuario in usuarios:
-        logging.info(f"\nProcessando usuário: {usuario}")
+        logging.info(f"Processando usuário: {usuario}")
         discord_id, nome, aba, coluna = usuario
 
         try:
@@ -141,17 +141,17 @@ def ler_votos_da_planilha():
         for discord_id, nome, _, _ in usuarios
     }
 
-    logging.info(f"\nUsuários mapeados: {mapa_coluna_para_usuario}")
+    logging.info(f"Usuários mapeados: {mapa_coluna_para_usuario}\n")
 
     abas = planilha.worksheets()
     for aba in abas:
         nome_aba = aba.title.strip()
 
         if nome_aba.upper() == "DASHBOARD":
-            logging.info(f"\n⏭️ Ignorando aba {nome_aba}")
+            logging.info(f"⏭️ Ignorando aba {nome_aba}\n")
             continue
 
-        logging.info(f"\n📄 Processando aba: {nome_aba}")
+        logging.info(f"📄 Processando aba: {nome_aba}")
         dados = aba.get_all_values()
 
         if len(dados) < 4:
@@ -185,7 +185,7 @@ def ler_votos_da_planilha():
 
             id_votante = usuario_votante["id"]
             nome_votante = usuario_votante["nome"]
-            logging.info(f"ID do votante: {id_votante} ({nome_votante})")
+            logging.info(f"ID do votante: {id_votante} ({nome_votante})\n")
 
             for i, linha in enumerate(dados[4:], start=5):
                 if len(linha) <= col_idx:

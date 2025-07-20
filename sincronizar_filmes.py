@@ -10,7 +10,7 @@ def sincronizar_filmes_com_planilha():
     logging.info("Limpando o banco...")
     limpar_banco_filmes()
 
-    logging.info("\nLendo filmes da planiha...")
+    logging.info("Lendo filmes da planiha...\n")
     filmes_planilha = ler_todos_os_filmes()
     total_filmes = 0
 
@@ -21,7 +21,7 @@ def sincronizar_filmes_com_planilha():
         id_responsavel = filme['id_responsavel']
         id_linha = filme['id_linha']
 
-        logging.info(f"\n🔍 Buscando: {titulo}")
+        logging.info(f"🔍 Buscando: {titulo}")
         detalhes = buscar_detalhes_filme(titulo, ano)
         logging.info(f"Detalhes encontrados:\n{detalhes}")
 
@@ -35,7 +35,7 @@ def sincronizar_filmes_com_planilha():
                 genero=detalhes.genres[0]["name"] if detalhes.genres else "Indefinido"
             )
 
-            logging.info(f"✅ {detalhes.title} ({detalhes.ano}) adicionado.")
+            logging.info(f"✅ {detalhes.title} ({detalhes.ano}) adicionado.\n")
             total_filmes += 1
         else:
             logging.info(f"⚠️ Detalhes não encontrados: {detalhes.title} ({detalhes.ano})")
@@ -44,11 +44,11 @@ def sincronizar_filmes_com_planilha():
 
 
 def sincronizar_votos_com_planilha():
-    logging.info("\n🔄 Sincronizando votos com a planilha...\n")
+    logging.info("🔄 Sincronizando votos com a planilha...\n")
 
     # 2. Carregar os votos da planilha
     votos = ler_votos_da_planilha()  # Cada item deve conter: id_linha, id_votante, id_responsavel, voto
-    logging.info(f"\n📌 Total de votos encontrados: {len(votos)}")
+    logging.info(f"📌 Total de votos encontrados: {len(votos)}\n")
     total_votos = 0
 
     for voto in votos:
@@ -60,7 +60,7 @@ def sincronizar_votos_com_planilha():
         aba = voto["aba"]
         valor_voto = voto["voto"]
 
-        logging.info(f"\n🔍 Processando voto: Aba={aba}, linha={id_linha}, votante={nome_votante}, responsavel={nome_responsavel}, voto={valor_voto}")
+        logging.info(f"🔍 Processando voto: Aba={aba}, linha={id_linha}, votante={nome_votante}, responsavel={nome_responsavel}, voto={valor_voto}")
 
         filme_info = buscar_filme_por_linha_e_usuario(id_responsavel, id_linha)
         if not filme_info:
@@ -69,10 +69,10 @@ def sincronizar_votos_com_planilha():
 
         id_filme, titulo_filme = filme_info
         registrar_voto(id_filme, id_responsavel, id_votante, valor_voto)
-        logging.info(f"🗳️ Voto registrado: {nome_votante} votou '{valor_voto}' no filme '{titulo_filme}' (Aba={aba}, Responsável={nome_responsavel}, linha {id_linha})")
+        logging.info(f"🗳️ Voto registrado: {nome_votante} votou '{valor_voto}' no filme '{titulo_filme}' (Aba={aba}, Responsável={nome_responsavel}, linha {id_linha})\n")
         total_votos += 1
 
-    logging.info("\n✅ Sincronização de votos concluída.")
+    logging.info("✅ Sincronização de votos concluída.")
     return total_votos
 
 def sincronizar_planilha():
@@ -85,5 +85,5 @@ if __name__ == "__main__":
     sincronizar_filmes_com_planilha()
     sincronizar_votos_com_planilha()
 
-    logging.info("\n✅ Sincronização concluída.")
+    logging.info("✅ Sincronização concluída.")
     
