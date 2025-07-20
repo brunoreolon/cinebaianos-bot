@@ -1,0 +1,13 @@
+# Ambiente virtual
+venv/
+__pycache__/
+
+# Arquivos sensíveis e credenciais
+.env
+credentials.json
+
+# Bancos de dados locais
+*.db
+
+# Arquivos temporários
+*.pyc
