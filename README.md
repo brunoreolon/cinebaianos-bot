@@ -55,3 +55,4 @@ Este é um projeto pessoal feito entre amigos para **organizar, votar e ranquear
   DISCORD_TOKEN=seu_token
   GOOGLE_SHEET_ID=seu_id_da_planilha
   TMDB_API_KEY=sua_api_key
+  DATABASE_PATH=./data/filmes.db
