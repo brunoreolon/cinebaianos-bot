@@ -119,15 +119,13 @@ def buscar_filme_por_linha_e_usuario(id_responsavel, linha_planilha):
     conn.close()
     return resultado
 
-def buscar_filme_por_linha(linha_planilha):
+def buscar_filme_por_id(id_filme):
     conn = conectar()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM filmes WHERE linha_planilha = ?", (linha_planilha,))
+    cursor.execute("SELECT * FROM filmes WHERE id = ?", (id_filme,))
     filme = cursor.fetchone()
     conn.close()
     return filme
-
-import sqlite3
 
 def buscar_todos_os_filmes():
     conn = conectar()
@@ -136,21 +134,6 @@ def buscar_todos_os_filmes():
     filmes = cursor.fetchall()
     conn.close()
     return filmes
-
-def contar_votos_por_tipo(voto_tipo: str):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT usuarios.nome, COUNT(*) as total
-        FROM votos
-        JOIN usuarios ON votos.id_votante = usuarios.discord_id
-        WHERE votos.voto = ?
-        GROUP BY votos.id_votante
-        ORDER BY total DESC
-    """, (voto_tipo,))
-    resultados = cursor.fetchall()
-    conn.close()
-    return resultados
 
 def contar_votos_recebidos_todos_usuario(discord_id: str, voto_tipo: str):
     conn = conectar()
@@ -278,11 +261,3 @@ def limpar_banco_filmes():
     cursor.execute("DELETE FROM filmes")
     conn.commit()
     conn.close()
-
-def buscar_id_filme_por_linha(id_linha):
-    conn = conectar()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, titulo FROM filmes WHERE linha_planilha = ?", (id_linha,))
-    resultado = cursor.fetchone()
-    conn.close()
-    return resultado if resultado else None
