@@ -3,12 +3,18 @@ import json
 import gspread
 from dotenv import load_dotenv
 from google.oauth2 import service_account
+from gspread_formatting import format_cell_range, CellFormat, TextFormat
+from db import buscar_todos_os_usuarios
 
 load_dotenv()
 
 SHEET_ID = os.getenv("SHEET_ID")
 SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
+print("GOOGLE_SHEETS_CREDENTIALS:", SERVICE_ACCOUNT_FILE is not None)
+
 SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON")
+print("GOOGLE_SHEETS_CREDENTIALS_JSON:", SERVICE_ACCOUNT_JSON is not None)
+
 
 if SERVICE_ACCOUNT_JSON:
     creds_dict = json.loads(SERVICE_ACCOUNT_JSON)
