@@ -1,14 +1,26 @@
 import os
+import json
 import gspread
 from dotenv import load_dotenv
+from google.oauth2.service_account import Credentials
 from gspread_formatting import format_cell_range, CellFormat, TextFormat
 from db import buscar_todos_os_usuarios
 
 load_dotenv()
-SHEET_ID = os.getenv("SHEET_ID")
-SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
 
-gc = gspread.service_account(filename=SERVICE_ACCOUNT_FILE)
+SHEET_ID = os.getenv("SHEET_ID")
+SERVICE_ACCOUNT_VAR = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
+
+# ✅ Detecta se é arquivo ou JSON embutido
+if SERVICE_ACCOUNT_VAR and os.path.exists(SERVICE_ACCOUNT_VAR):
+    # Ambiente local: usa o caminho do arquivo
+    gc = gspread.service_account(filename=SERVICE_ACCOUNT_VAR)
+else:
+    # Produção (Railway): trata como JSON em string
+    creds_dict = json.loads(SERVICE_ACCOUNT_VAR)
+    credentials = Credentials.from_service_account_info(creds_dict)
+    gc = gspread.authorize(credentials)
+
 sheet = gc.open_by_key(SHEET_ID)
 
 def get_planilha():
