@@ -69,7 +69,10 @@ async def comandos(ctx):
     )
     await ctx.send(mensagem)
 
-# Comando !registrar
+@bot.tree.command(name="ping", description="teste")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("Pong! Estou online")
+
 @bot.command(name="registrar")
 async def registrar(ctx, *args):
     if len(args) < 2:
@@ -88,7 +91,6 @@ async def registrar(ctx, *args):
     registrar_usuario(discord_id, nome, aba, coluna)
     await ctx.send(f"✅ {ctx.author.mention} registrado com sucesso!\n🗂️ Aba: **{aba}** | 📊 Coluna: **{coluna}**")
 
-# Comando !perfil
 @bot.command(name="perfil")
 async def perfil(ctx, membro: discord.Member = None):
     membro = membro or ctx.author
@@ -99,9 +101,6 @@ async def perfil(ctx, membro: discord.Member = None):
         await ctx.send(f"\n**Perfil de {membro.display_name}**\n🌐 Nome: `{nome}`\n🗂️ Aba: `{aba}`\n📊 Coluna: `{coluna}`")
     else:
         await ctx.send(f"{membro.mention} ainda não está registrado. Use `!registrar <aba> <coluna>`.")
-
-  # Relevanta erros inesperados para não esconder bugs reais
-
 
 @bot.command(name="usuarios")
 async def listar_usuarios(ctx, *args):
@@ -121,7 +120,6 @@ async def listar_usuarios(ctx, *args):
         msg += f"• {mention} — `{nome}` | Aba: `{aba}`, Coluna: `{coluna}`\n"
     
     await ctx.send(msg)
-
 
 @bot.command(name="adicionar")
 async def adicionar(ctx, *, args=None):
@@ -453,7 +451,6 @@ async def meus_generos(ctx):
 
     await ctx.send(mensagem)
 
-
 @bot.command(name="generos-da-hora")
 async def generos_da_hora(ctx):
     generos_ordenados = contar_generos_da_hora()
@@ -486,7 +483,6 @@ async def generos_lixo(ctx):
 async def planilha(ctx):
     await ctx.send("📄 Aqui está o link da planilha de filmes:\n"
                    "🔗 https://docs.google.com/spreadsheets/d/1PWZWjoitXowKcvEfY1ULjBcufDhF46AXivVLUuDHt4Q/edit?usp=sharing")
-
 
 @bot.command(name='sincronizar')
 @commands.has_permissions(administrator=True)
@@ -543,5 +539,10 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_ready():
     logging.info(f"✅ Bot conectado como {bot.user}")
+    try:
+        synced = await bot.tree.sync()
+        logging.info(f"🔄 Comandos de barra sincronizados: {len(synced)}")
+    except Exception as e:
+        logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
 bot.run(TOKEN)
