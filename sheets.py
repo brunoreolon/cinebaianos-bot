@@ -99,15 +99,21 @@ def ler_todos_os_filmes():
             dados = aba_sheet.get_all_values()
 
             for i, linha in enumerate(dados[4:], start=5): # Pula o cabeçalho, começa na linha 2
-                logging.info(f"Linha: {linha}")  
+                logging.info(f"Linha: {linha}")
 
                 titulo_raw = linha[1].strip()
 
                 if not titulo_raw:
                     continue
 
-                titulo = titulo_raw.strip()
-                ano = None
+                nome_com_ano = titulo_raw.strip()
+
+                if "(" in nome_com_ano and ")" in nome_com_ano:
+                    titulo = nome_com_ano[:nome_com_ano.rfind("(")].strip()
+                    ano = nome_com_ano[nome_com_ano.rfind("(") + 1:nome_com_ano.rfind(")")].strip()
+                else:
+                    titulo = nome_com_ano
+                    ano = None
 
                 filmes_encontrados.append({
                     "titulo": titulo,
