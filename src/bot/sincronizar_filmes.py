@@ -1,8 +1,8 @@
 # sincronizar_filmes.py
 import logging
-from db import limpar_banco_filmes, adicionar_filme, registrar_voto, buscar_filme_por_linha_e_usuario
-from sheets import ler_todos_os_filmes, ler_votos_da_planilha
-from tmdb import buscar_detalhes_filme
+from src.bot.db.db import limpar_banco_filmes, adicionar_filme, registrar_voto, buscar_filme_por_linha_e_usuario
+from src.bot.sheets.sheets import ler_todos_os_filmes, ler_votos_da_planilha
+from src.bot.tmdb import buscar_detalhes_filme
 
 def sincronizar_filmes_com_planilha():
     logging.info("🔄 Sincronizando filmes com a planilha...\n")

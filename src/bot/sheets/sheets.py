@@ -6,7 +6,7 @@ import logging
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from gspread_formatting import format_cell_range, CellFormat, TextFormat
-from db import buscar_todos_os_usuarios
+from src.bot.db.db import buscar_todos_os_usuarios
 
 load_dotenv()
 

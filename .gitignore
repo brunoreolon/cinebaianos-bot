@@ -11,3 +11,5 @@ credentials.json
 
 # Arquivos temporários
 *.pyc
+
+.idea/
