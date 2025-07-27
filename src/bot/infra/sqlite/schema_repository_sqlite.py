@@ -1,10 +1,12 @@
-from src.bot.infra.sqlite.connection import criar_conexao
 from src.bot.domain.repositories.schemas_repository import SchemasRepository
 
 class SchemasRepositorySQLite(SchemasRepository):
 
+    def __init__(self, conn_provider):
+        self.conn_provider = conn_provider
+
     def criar_tabelas(self):
-        with criar_conexao() as conn:
+        with self.conn_provider.get_connection() as conn:
             cursor = conn.cursor()
 
             cursor.execute("""

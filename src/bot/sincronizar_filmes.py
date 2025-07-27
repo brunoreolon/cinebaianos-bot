@@ -1,7 +1,6 @@
 import logging
 import time
 
-from src.bot.di.connection_factory import get_connection_provider
 from src.bot.di.repository_factory import criar_filmes_repository, criar_votos_repository
 from src.bot.di.maintenance_factory import criar_maintenance_repository
 from src.bot.sheets.sheets import ler_todos_os_filmes, ler_votos_da_planilha
@@ -56,7 +55,7 @@ def sincronizar_votos_com_planilha(conn_provider):
     logging.info("🔄 Sincronizando votos com a planilha...\n")
 
     # 2. Carregar os votos da planilha
-    votos = ler_votos_da_planilha()  # Cada item deve conter: id_linha, id_votante, id_responsavel, voto
+    votos = ler_votos_da_planilha(conn_provider)  # Cada item deve conter: id_linha, id_votante, id_responsavel, voto
     logging.info(f"📌 Total de votos encontrados: {len(votos)}\n")
     total_votos = 0
 
@@ -93,13 +92,3 @@ def sincronizar_planilha(conn_provider):
     elapsed = time.time() - start_time
 
     return total_filmes, total_votos, elapsed
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    conn_provider = get_connection_provider()
-
-    total_filmes, total_votos, elapsed = sincronizar_planilha(conn_provider)
-    minutos = int(elapsed // 60)
-    segundos = int(elapsed % 60)
-    logging.info(f"✅ Sincronização concluída em {minutos} minutos e {segundos} segundos!")

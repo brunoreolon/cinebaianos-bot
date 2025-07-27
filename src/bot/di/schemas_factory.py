@@ -10,10 +10,10 @@ SCHEMAS = {
     "sqlite": SchemasRepositorySQLite,
 }
 
-def get_schemas_repository()-> SchemasRepository:
+def get_schemas_repository(conn_provider) -> SchemasRepository:
     backend = os.getenv("DB_BACKEND").lower()
 
     try:
-        return SCHEMAS[backend]()
+        return SCHEMAS[backend](conn_provider)
     except KeyError:
         raise ValueError(f"Schema para backend '{backend}' não suportado.")

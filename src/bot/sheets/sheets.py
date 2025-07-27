@@ -16,7 +16,7 @@ SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
 logging.info(f"GOOGLE_SHEETS_CREDENTIALS: {SERVICE_ACCOUNT_FILE is not None}")
 
 SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SHEETS_CREDENTIALS_JSON")
-logging.info("GOOGLE_SHEETS_CREDENTIALS_JSON: {SERVICE_ACCOUNT_JSON is not None}")
+logging.info(f"GOOGLE_SHEETS_CREDENTIALS_JSON: {SERVICE_ACCOUNT_JSON is not None}")
 
 
 if SERVICE_ACCOUNT_JSON:
@@ -130,7 +130,9 @@ def ler_todos_os_filmes(conn_provider):
 
     return filmes_encontrados
 
-def ler_votos_da_planilha():
+def ler_votos_da_planilha(conn_provider):
+    usuario_repo = criar_usuarios_repository(conn_provider)
+
     planilha = get_planilha()
     usuarios = usuario_repo.buscar_todos_os_usuarios()
     votos = []

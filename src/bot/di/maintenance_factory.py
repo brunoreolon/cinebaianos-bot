@@ -10,10 +10,10 @@ REPOSITORIOS_MAINTENANCE = {
     "sqlite": MaintenanceRepositorySQLite,
 }
 
-def criar_maintenance_repository()-> MaintenanceRepository:
+def criar_maintenance_repository(conn_provider)-> MaintenanceRepository:
     backend = os.getenv("DB_BACKEND").lower()
 
     try:
-        return REPOSITORIOS_MAINTENANCE[backend]()
+        return REPOSITORIOS_MAINTENANCE[backend](conn_provider)
     except KeyError:
         raise ValueError(f"Backend '{backend}' não suportado para MaintenanceRepository.")

@@ -36,11 +36,11 @@ async def on_ready():
         logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
 async def main():
-    schema_repo = get_schemas_repository()
-    schema_repo.criar_tabelas()
-
     conn_provider = get_connection_provider()
     bot.conn_provider = conn_provider
+
+    schema_repo = get_schemas_repository(conn_provider)
+    schema_repo.criar_tabelas()
 
     await bot.load_extension("src.bot.cogs.filmes")
     await bot.load_extension("src.bot.cogs.votos")
