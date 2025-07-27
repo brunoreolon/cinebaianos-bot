@@ -1,13 +1,17 @@
-# bot.py
 from dotenv import load_dotenv
+
+from src.bot.di.connection_factory import get_connection_provider
+
 load_dotenv()
 
 import discord
-from discord.ext import commands
 import os
 import logging
 import asyncio
-from src.bot.db.db import criar_tabelas
+
+from discord.ext import commands
+
+from src.bot.di.schemas_factory import get_schemas_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +36,11 @@ async def on_ready():
         logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
 async def main():
-    criar_tabelas()
+    schema_repo = get_schemas_repository()
+    schema_repo.criar_tabelas()
+
+    conn_provider = get_connection_provider()
+    bot.conn_provider = conn_provider
 
     await bot.load_extension("src.bot.cogs.filmes")
     await bot.load_extension("src.bot.cogs.votos")

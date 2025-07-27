@@ -1,14 +1,17 @@
 from discord.ext import commands
-from src.bot.db.db import buscar_usuario, contar_todos_os_votos_por_usuario, contar_votos_recebidos_todos_usuario, buscar_todos_os_usuarios
+
+from src.bot.di.repository_factory import criar_usuarios_repository, criar_votos_repository
 
 class Rankings(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot, conn_provider):
         self.bot = bot
+        self.usuario_repo = criar_usuarios_repository(conn_provider)
+        self.voto_repo = criar_votos_repository(conn_provider)
 
     @commands.command(name="ranking")
     async def ranking(self, ctx):
-        ranking = contar_todos_os_votos_por_usuario()
+        ranking = self.voto_repo.contar_todos_os_votos_por_usuario()
 
         if not ranking:
             await ctx.send("Nenhum voto registrado ainda.")
@@ -32,24 +35,24 @@ class Rankings(commands.Cog):
                 await ctx.send("❌ Argumento inválido. Use uma menção ao usuário (`@usuário`) ou deixe vazio para ver o ranking.")
                 return
 
-            usuario = buscar_usuario(str(membro.id))
+            usuario = self.usuario_repo.buscar_usuario(str(membro.id))
             if not usuario:
                 await ctx.send(f"{membro.mention} ainda não está registrado.")
                 return
 
-            total = contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
+            total = self.voto_repo.contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
             await ctx.send(f"🏆 {membro.display_name} recebeu **{total}** votos *DA HORA*.")
             return
 
         # Sem argumento: ranking completo
-        usuarios = buscar_todos_os_usuarios()
+        usuarios = self.usuario_repo.buscar_todos_os_usuarios()
         if not usuarios:
             await ctx.send("Nenhum usuário registrado ainda.")
             return
 
         ranking = []
         for discord_id, nome, _, _ in usuarios:
-            total = contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
+            total = self.voto_repo.contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
             ranking.append((nome, total))
 
         # Ordenar por quantidade de votos decrescente
@@ -71,23 +74,23 @@ class Rankings(commands.Cog):
                 await ctx.send("❌ Argumento inválido. Use uma menção ao usuário (`@usuário`) ou deixe vazio para ver o ranking.")
                 return
 
-            usuario = buscar_usuario(str(membro.id))
+            usuario = self.usuario_repo.buscar_usuario(str(membro.id))
             if not usuario:
                 await ctx.send(f"{membro.mention} ainda não está registrado.")
                 return
 
-            total = contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
+            total = self.voto_repo.contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
             await ctx.send(f"🗑️ {membro.display_name} recebeu **{total}** votos *LIXO*.")
             return
 
-        usuarios = buscar_todos_os_usuarios()
+        usuarios = self.usuario_repo.buscar_todos_os_usuarios()
         if not usuarios:
             await ctx.send("Nenhum usuário registrado ainda.")
             return
 
         ranking = []
         for discord_id, nome, _, _ in usuarios:
-            total = contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
+            total = self.voto_repo.contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
             ranking.append((nome, total))
 
         ranking.sort(key=lambda x: x[1], reverse=True)
@@ -98,4 +101,5 @@ class Rankings(commands.Cog):
         await ctx.send(msg)
 
 async def setup(bot):
-    await bot.add_cog(Rankings(bot))
+    conn_provider = getattr(bot, "conn_provider", None)
+    await bot.add_cog(Rankings(bot, conn_provider))

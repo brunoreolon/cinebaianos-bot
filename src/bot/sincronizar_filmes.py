@@ -1,17 +1,23 @@
-# sincronizar_filmes.py
 import logging
-from src.bot.db.db import limpar_banco_filmes, adicionar_filme, registrar_voto, buscar_filme_por_linha_e_usuario
+import time
+
+from src.bot.di.connection_factory import get_connection_provider
+from src.bot.di.repository_factory import criar_filmes_repository, criar_votos_repository
+from src.bot.di.maintenance_factory import criar_maintenance_repository
 from src.bot.sheets.sheets import ler_todos_os_filmes, ler_votos_da_planilha
 from src.bot.tmdb import buscar_detalhes_filme
 
-def sincronizar_filmes_com_planilha():
+def sincronizar_filmes_com_planilha(conn_provider):
+    filme_repo = criar_filmes_repository(conn_provider)
+    maintenance_repo = criar_maintenance_repository(conn_provider)
+
     logging.info("🔄 Sincronizando filmes com a planilha...\n")
 
     logging.info("Limpando o banco...")
-    limpar_banco_filmes()
+    maintenance_repo.limpar_banco_filmes()
 
     logging.info("Lendo filmes da planiha...\n")
-    filmes_planilha = ler_todos_os_filmes()
+    filmes_planilha = ler_todos_os_filmes(conn_provider)
     total_filmes = 0
 
     # 3. Adicionar no banco com dados enriquecidos
@@ -26,7 +32,7 @@ def sincronizar_filmes_com_planilha():
         logging.info(f"Detalhes encontrados:\n{detalhes}")
 
         if detalhes:
-            adicionar_filme(
+            filme_repo.adicionar_filme(
                 tmdb_id=detalhes.id,
                 titulo=detalhes.title,
                 id_responsavel=id_responsavel,
@@ -38,12 +44,15 @@ def sincronizar_filmes_com_planilha():
             logging.info(f"✅ {detalhes.title} ({detalhes.ano}) adicionado.\n")
             total_filmes += 1
         else:
-            logging.info(f"⚠️ Detalhes não encontrados: {detalhes.title} ({detalhes.ano})")
+            logging.info(f"⚠️ Detalhes não encontrados: {detalhes} ({detalhes})")
 
     return total_filmes
 
 
-def sincronizar_votos_com_planilha():
+def sincronizar_votos_com_planilha(conn_provider):
+    filme_repo = criar_filmes_repository(conn_provider)
+    voto_repo = criar_votos_repository(conn_provider)
+
     logging.info("🔄 Sincronizando votos com a planilha...\n")
 
     # 2. Carregar os votos da planilha
@@ -62,28 +71,35 @@ def sincronizar_votos_com_planilha():
 
         logging.info(f"🔍 Processando voto: Aba={aba}, linha={id_linha}, votante={nome_votante}, responsavel={nome_responsavel}, voto={valor_voto}")
 
-        filme_info = buscar_filme_por_linha_e_usuario(id_responsavel, id_linha)
+        filme_info = filme_repo.buscar_filme_por_linha_e_usuario(id_responsavel, id_linha)
         if not filme_info:
             logging.info(f"❌ Filme não encontrado para responsavel={nome_responsavel}, linha={id_linha}")
             continue
 
         id_filme, titulo_filme = filme_info
-        registrar_voto(id_filme, id_responsavel, id_votante, valor_voto)
+        voto_repo.registrar_voto(id_filme, id_responsavel, id_votante, valor_voto)
         logging.info(f"🗳️ Voto registrado: {nome_votante} votou '{valor_voto}' no filme '{titulo_filme}' (Aba={aba}, Responsável={nome_responsavel}, linha {id_linha})\n")
         total_votos += 1
 
     logging.info("✅ Sincronização de votos concluída.")
     return total_votos
 
-def sincronizar_planilha():
-    total_filmes = sincronizar_filmes_com_planilha()
-    total_votos = sincronizar_votos_com_planilha()
+def sincronizar_planilha(conn_provider):
+    start_time = time.time()
 
-    return total_filmes, total_votos
+    total_filmes = sincronizar_filmes_com_planilha(conn_provider)
+    total_votos = sincronizar_votos_com_planilha(conn_provider)
+
+    elapsed = time.time() - start_time
+
+    return total_filmes, total_votos, elapsed
 
 if __name__ == "__main__":
-    sincronizar_filmes_com_planilha()
-    sincronizar_votos_com_planilha()
+    logging.basicConfig(level=logging.INFO)
 
-    logging.info("✅ Sincronização concluída.")
-    
+    conn_provider = get_connection_provider()
+
+    total_filmes, total_votos, elapsed = sincronizar_planilha(conn_provider)
+    minutos = int(elapsed // 60)
+    segundos = int(elapsed % 60)
+    logging.info(f"✅ Sincronização concluída em {minutos} minutos e {segundos} segundos!")
