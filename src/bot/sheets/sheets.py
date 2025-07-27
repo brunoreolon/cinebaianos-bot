@@ -6,7 +6,8 @@ import logging
 from dotenv import load_dotenv
 from google.oauth2 import service_account
 from gspread_formatting import format_cell_range, CellFormat, TextFormat
-from src.bot.db.db import buscar_todos_os_usuarios
+
+from src.bot.di.repository_factory import criar_usuarios_repository
 
 load_dotenv()
 
@@ -83,9 +84,11 @@ def escrever_voto_na_planilha(aba, linha, coluna, voto):
         logging.info(f"❌ Erro ao escrever voto na planilha: {e}")
         return False
 
-def ler_todos_os_filmes():
+def ler_todos_os_filmes(conn_provider):
+    usuario_repo = criar_usuarios_repository(conn_provider)
+
     planilha = get_planilha()
-    usuarios = buscar_todos_os_usuarios()  # Deve retornar lista de tuplas: (id, nome, aba, coluna)
+    usuarios = usuario_repo.buscar_todos_os_usuarios()  # Deve retornar lista de tuplas: (id, nome, aba, coluna)
     logging.info(f"Usuários encontrados: {usuarios}\n")
 
     filmes_encontrados = []
@@ -129,7 +132,7 @@ def ler_todos_os_filmes():
 
 def ler_votos_da_planilha():
     planilha = get_planilha()
-    usuarios = buscar_todos_os_usuarios()
+    usuarios = usuario_repo.buscar_todos_os_usuarios()
     votos = []
 
     # Mapa COLUNA -> {id, nome}
