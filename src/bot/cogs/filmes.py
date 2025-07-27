@@ -1,17 +1,22 @@
-from discord.ext import commands
 import discord
-from src.bot.db.db import buscar_usuario, adicionar_filme, registrar_voto, buscar_filmes_por_usuario, buscar_todos_os_filmes
+
+from discord.ext import commands
+
+from src.bot.di.repository_factory import criar_filmes_repository, criar_usuarios_repository, criar_votos_repository
 from src.bot.sheets.sheets import adicionar_filme_na_planilha
 from src.bot.tmdb import buscar_detalhes_filme
 
 class Filmes(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot, conn_provider):
         self.bot = bot
+        self.filme_repo = criar_filmes_repository(conn_provider)
+        self.usuario_repo = criar_usuarios_repository(conn_provider)
+        self.voto_repo = criar_votos_repository(conn_provider)
 
     @commands.command(name="adicionar")
     async def adicionar(self, ctx, *, args=None):
-        usuario = buscar_usuario(str(ctx.author.id))
+        usuario = self.usuario_repo.buscar_usuario(str(ctx.author.id))
         if not usuario:
             await ctx.send("❌ Você precisa se registrar primeiro usando:\n`!registrar <aba> <coluna>`")
             return
@@ -20,25 +25,22 @@ class Filmes(commands.Cog):
             await ctx.send("❌ Comando incorreto.\nFormato esperado:\n`!adicionar \"Nome do Filme (ano)\" [voto opcional]`\n\nExemplo:\n`!adicionar \"Clube da Luta (1999)\" 1`")
             return
 
-        partes = args.rsplit(" ", 1)
-        voto = None
-
         VOTOS_MAPA = {
             1: "DA HORA",
             2: "LIXO",
             3: "NÃO ASSISTI"
         }
 
-        # Verifica se último argumento é um número de voto
-        if len(partes) == 2:
-            nome_com_ano, voto_str = partes
-            if voto_str.isdigit():
-                voto = int(voto_str)
-                if voto not in VOTOS_MAPA:
-                    await ctx.send("⚠️ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
-                    return
+        partes = args.rsplit(" ", 1)
+        voto = None
+
+        if len(partes) == 2 and partes[1].isdigit():
+            voto_int = int(partes[1])
+            if voto_int in VOTOS_MAPA:
+                voto = voto_int
+                nome_com_ano = partes[0]
             else:
-                await ctx.send("⚠️ O segundo parâmetro deve ser um número (1, 2 ou 3) representando seu voto.\nExemplo: `!adicionar \"Filme (2020)\" 1`")
+                await ctx.send("⚠️ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
                 return
         else:
             nome_com_ano = args
@@ -67,7 +69,7 @@ class Filmes(commands.Cog):
         )
 
         # Salva no banco
-        id_filme = adicionar_filme(
+        id_filme = self.filme_repo.adicionar_filme(
             titulo=filme.title,
             id_responsavel=usuario[0],
             linha_planilha=linha,
@@ -77,7 +79,7 @@ class Filmes(commands.Cog):
         )
 
         if voto:
-            registrar_voto(id_filme=id_filme, id_responsavel=usuario[0], id_votante=usuario[0], voto=voto_texto)
+            self.voto_repo.registrar_voto(id_filme=id_filme, id_responsavel=usuario[0], id_votante=usuario[0], voto=voto_texto)
 
         # Envia embed
         embed = discord.Embed(
@@ -114,12 +116,12 @@ class Filmes(commands.Cog):
 
     async def listar_filmes_embed(self, ctx, membro_obj=None):
         if membro_obj:
-            usuario = buscar_usuario(str(membro_obj.id))
+            usuario = self.usuario_repo.buscar_usuario(str(membro_obj.id))
             if not usuario:
                 await ctx.send(f"{membro_obj.mention} ainda não está registrado.")
                 return
 
-            filmes = buscar_filmes_por_usuario(usuario[0])
+            filmes = self.filme_repo.buscar_filmes_por_usuario(usuario[0])
             if not filmes:
                 await ctx.send(f"{membro_obj.display_name} ainda não adicionou nenhum filme.")
                 return
@@ -129,7 +131,7 @@ class Filmes(commands.Cog):
                 msg += f"`{filme[0]}` - {filme[1]} ({filme[5]})\n"
             await ctx.send(msg)
         else:
-            todos_filmes = buscar_todos_os_filmes()
+            todos_filmes = self.filme_repo.buscar_todos_os_filmes()
             if not todos_filmes:
                 await ctx.send("Nenhum filme registrado ainda.")
                 return
@@ -143,7 +145,7 @@ class Filmes(commands.Cog):
 
             msg = "📽️ **Filmes adicionados:**\n"
             for id_user, filmes in filmes_por_usuario.items():
-                usuario = buscar_usuario(id_user)
+                usuario = self.usuario_repo.buscar_usuario(id_user)
                 nome = usuario[1] if usuario else "Desconhecido"
                 msg += f"\n👤 **{nome}:**\n"
                 for filme in filmes:
@@ -152,4 +154,5 @@ class Filmes(commands.Cog):
             await ctx.send(msg)
 
 async def setup(bot):
-    await bot.add_cog(Filmes(bot))
+    conn_provider = getattr(bot, "conn_provider", None)
+    await bot.add_cog(Filmes(bot, conn_provider))

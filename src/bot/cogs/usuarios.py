@@ -1,11 +1,14 @@
 import discord
+
 from discord.ext import commands
-from src.bot.db.db import buscar_usuario, registrar_usuario, buscar_todos_os_usuarios
+
+from src.bot.di.repository_factory import criar_usuarios_repository
 
 class Usuarios(commands.Cog):
 
-    def __init__(self, bot):
+    def __init__(self, bot, conn_provider):
         self.bot = bot
+        self.usuario_repo = criar_usuarios_repository(conn_provider)
 
     @commands.command(name="registrar")
     async def registrar(self, ctx, *args):
@@ -22,13 +25,13 @@ class Usuarios(commands.Cog):
         # if buscar_usuario(discord_id):
         #     await ctx.send(f"{ctx.author.mention} você já está registrado.")
         # else:
-        registrar_usuario(discord_id, nome, aba, coluna)
+        self.usuario_repo.registrar_usuario(discord_id, nome, aba, coluna)
         await ctx.send(f"✅ {ctx.author.mention} registrado com sucesso!\n🗂️ Aba: **{aba}** | 📊 Coluna: **{coluna}**")
 
     @commands.command(name="perfil")
     async def perfil(self, ctx, membro: discord.Member = None):
         membro = membro or ctx.author
-        usuario = buscar_usuario(str(membro.id))
+        usuario = self.usuario_repo.buscar_usuario(str(membro.id))
 
         if usuario:
             _, nome, aba, coluna = usuario
@@ -42,7 +45,7 @@ class Usuarios(commands.Cog):
             await ctx.send("❌ Uso incorreto. O comando `!usuarios` não aceita argumentos.")
             return
 
-        usuarios = buscar_todos_os_usuarios()
+        usuarios = self.usuario_repo.buscar_todos_os_usuarios()
 
         if not usuarios:
             await ctx.send("Nenhum usuário registrado.")
@@ -63,4 +66,5 @@ class Usuarios(commands.Cog):
             raise error
 
 async def setup(bot):
-    await bot.add_cog(Usuarios(bot))
+    conn_provider = getattr(bot, "conn_provider", None)
+    await bot.add_cog(Usuarios(bot, conn_provider))
