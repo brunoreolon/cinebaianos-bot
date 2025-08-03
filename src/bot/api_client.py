@@ -1,3 +1,5 @@
+import logging
+
 import aiohttp
 
 from src.bot.config import Config
@@ -27,21 +29,31 @@ class ApiClient:
         from src.bot.exception.api_error import ApiError
 
         url = f"{Config.BASE_URL}{path}"
+        logging.info(f"URL: {url}")
+
         try:
             async with self.session.request(method, url, **kwargs) as resp:
-                content = await resp.text()  # pega o corpo como texto, independente de JSON
+                content = await resp.text()
+                logging.info(f"Content: {content}")
+
+                # pega o corpo como texto, independente de JSON
                 if resp.status >= 400:
+                    logging.info(f"Status: {resp.status}")
                     try:
                         data = await resp.json()
+                        logging.info(f"Data: {data}")
                         raise ApiError(
                             code=data.get("code", "unknown_error"),
                             message=data.get("error", "Erro desconhecido."),
                             status=resp.status
                         )
-                    except aiohttp.ContentTypeError:
+                    except aiohttp.ContentTypeError as e:
+                        logging.info(f"ERRO: {e}")
+
                         # Mostra o conteúdo para ajudar a debugar
                         raise ApiError("unknown_error", f"Erro desconhecido. Response content: {content}", resp.status)
                 return await resp.json()
         except aiohttp.ClientError as e:
+            logging.info(f"ERRO2: {e}")
             raise ApiError("network_error", str(e), 500)
 
