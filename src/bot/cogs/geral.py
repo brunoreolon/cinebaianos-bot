@@ -16,7 +16,7 @@ class Geral(commands.Cog):
             "• `!meus-filmes` — Lista seus próprios filmes adicionados\n\n"
     
             "**✅ Votação:**\n"
-            "• `!votar <linha> <voto>` — Vota em um filme (1 = DA HORA, 2 = LIXO, 3 = NÃO ASSISTI)\n\n"
+            "• `!votar <id filme> <voto>` — Vota em um filme (1 = DA HORA, 2 = LIXO, 3 = NÃO ASSISTI)\n\n"
     
             "**🏆 Rankings:**\n"
             "• `!ranking` — Quantidade total de votos DA HORA e LIXO por usuário\n"
