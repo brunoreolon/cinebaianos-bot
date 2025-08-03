@@ -2,27 +2,26 @@ import discord
 
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_filmes_repository, criar_usuarios_repository, criar_votos_repository
-from src.bot.sheets.sheets import adicionar_filme_na_planilha
-from src.bot.tmdb import buscar_detalhes_filme
+from src.bot.exception.api_error import ApiError
+from src.bot.utils.error_utils import get_error_message
+
 
 class Filmes(commands.Cog):
 
-    def __init__(self, bot, conn_provider):
+    def __init__(self, bot):
         self.bot = bot
-        self.filme_repo = criar_filmes_repository(conn_provider)
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
-        self.voto_repo = criar_votos_repository(conn_provider)
+        self.api_client = bot.api_client
 
     @commands.command(name="adicionar")
     async def adicionar(self, ctx, *, args=None):
-        usuario = self.usuario_repo.buscar_usuario(str(ctx.author.id))
-        if not usuario:
-            await ctx.send("❌ Você precisa se registrar primeiro usando:\n`!registrar <aba> <coluna>`")
-            return
-
         if not args:
             await ctx.send("❌ Comando incorreto.\nFormato esperado:\n`!adicionar \"Nome do Filme (ano)\" [voto opcional]`\n\nExemplo:\n`!adicionar \"Clube da Luta (1999)\" 1`")
+            return
+
+        try:
+            resposta = await self.api_client.get(f"/users/{ctx.author.id}")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
             return
 
         VOTOS_MAPA = {
@@ -53,46 +52,36 @@ class Filmes(commands.Cog):
         titulo = nome_com_ano[:nome_com_ano.rfind("(")].strip()
         ano = nome_com_ano[nome_com_ano.rfind("(") + 1:nome_com_ano.rfind(")")].strip()
 
-        filme = buscar_detalhes_filme(titulo, ano)
-        if not filme:
-            await ctx.send("❌ Filme não encontrado. Verifique o título e o ano e tente novamente.")
+        payload = {
+            "title": titulo,
+            "year": ano,
+            "responsible_id": resposta["discord_id"],
+            "vote": voto
+        }
+
+        try:
+            resposta = await self.api_client.post(f"/movies", json=payload)
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
             return
-
-        voto_texto = VOTOS_MAPA.get(voto) if voto else None
-
-        # Salva na planilha
-        linha = adicionar_filme_na_planilha(
-            titulo=filme.title,
-            aba=usuario[2],
-            coluna=usuario[3],
-            voto=voto_texto
-        )
-
-        # Salva no banco
-        id_filme = self.filme_repo.adicionar_filme(
-            titulo=filme.title,
-            id_responsavel=usuario[0],
-            linha_planilha=linha,
-            genero=filme.genres[0]["name"] if filme.genres else "Indefinido",
-            ano=filme.ano,
-            tmdb_id=filme.id
-        )
-
-        if voto:
-            self.voto_repo.registrar_voto(id_filme=id_filme, id_responsavel=usuario[0], id_votante=usuario[0], voto=voto_texto)
 
         # Envia embed
         embed = discord.Embed(
-            title=filme.title,
-            description=f"Ano: {filme.ano}\nGênero: {filme.genres[0]['name'] if filme.genres else 'Indefinido'}",
+            title=resposta["movie"]["title"],
+            description=f"Ano: {resposta['movie']['year']}\nGênero: {resposta['movie']['genre'] if resposta['movie']['genre'] else 'Indefinido'}",
             color=0x00ff00
         )
 
-        if filme.poster_path:
-            embed.set_image(url=f"https://image.tmdb.org/t/p/original{filme.poster_path}")
+        if resposta["movie"]["poster_path"]:
+            embed.set_image(url=f"https://image.tmdb.org/t/p/original{resposta["movie"]["poster_path"]}")
+
+        voto_texto = VOTOS_MAPA.get(voto) if voto else None
 
         if voto:
             embed.add_field(name="Seu voto", value=voto_texto, inline=False)
+
+        linha = resposta["movie"]["spreadsheet_row"]
+        id_filme = resposta["movie"]["id"]
 
         embed.set_footer(text=f"ID na planilha: {linha}\nID do Filme: {id_filme}")
         await ctx.send(embed=embed)
@@ -116,43 +105,54 @@ class Filmes(commands.Cog):
 
     async def listar_filmes_embed(self, ctx, membro_obj=None):
         if membro_obj:
-            usuario = self.usuario_repo.buscar_usuario(str(membro_obj.id))
+            try:
+                usuario = await self.api_client.get(f"/users/{str(membro_obj.id)}")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
+                return
+
             if not usuario:
                 await ctx.send(f"{membro_obj.mention} ainda não está registrado.")
                 return
 
-            filmes = self.filme_repo.buscar_filmes_por_usuario(usuario[0])
+            try:
+                filmes = await self.api_client.get("/movies", params={"discord_id": usuario["discord_id"]})
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
+                return
+
             if not filmes:
                 await ctx.send(f"{membro_obj.display_name} ainda não adicionou nenhum filme.")
                 return
 
-            msg = f"🎬 **Filmes adicionados por {membro_obj.display_name}:**\n"
-            for filme in filmes:
-                msg += f"`{filme[0]}` - {filme[1]} ({filme[5]})\n"
+            msg = f"🎬 **Filmes adicionados por {membro_obj.display_name}:**\n\n"
+            filmes_usuario = filmes["movies"]
+            for filme in filmes_usuario:
+                msg += f"`{filme['id']}` - {filme['title']} ({filme['year']})\n"
             await ctx.send(msg)
         else:
-            todos_filmes = self.filme_repo.buscar_todos_os_filmes()
+            try:
+                todos_filmes = await self.api_client.get("/movies")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
+                return
+
             if not todos_filmes:
                 await ctx.send("Nenhum filme registrado ainda.")
                 return
 
-            filmes_por_usuario = {}
-            for filme in todos_filmes:
-                id_responsavel = filme[2]
-                if id_responsavel not in filmes_por_usuario:
-                    filmes_por_usuario[id_responsavel] = []
-                filmes_por_usuario[id_responsavel].append(filme)
-
             msg = "📽️ **Filmes adicionados:**\n"
-            for id_user, filmes in filmes_por_usuario.items():
-                usuario = self.usuario_repo.buscar_usuario(id_user)
-                nome = usuario[1] if usuario else "Desconhecido"
+            for usuario_filmes in todos_filmes:
+                usuario = usuario_filmes["user"]
+                filmes_usuario  = usuario_filmes["movies"]
+
+                nome = usuario["name"] if usuario["name"] else "Desconhecido"
                 msg += f"\n👤 **{nome}:**\n"
-                for filme in filmes:
-                    msg += f"`{filme[0]}` - {filme[1]} ({filme[5]})\n"
+
+                for filme in filmes_usuario:
+                    msg += f"`{filme['id']}` - {filme['title']} ({filme['year']})\n"
 
             await ctx.send(msg)
 
 async def setup(bot):
-    conn_provider = getattr(bot, "conn_provider", None)
-    await bot.add_cog(Filmes(bot, conn_provider))
+    await bot.add_cog(Filmes(bot))

@@ -2,86 +2,112 @@ import discord
 
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_usuarios_repository, criar_generos_repository
+from src.bot.exception.api_error import ApiError
+from src.bot.utils.error_utils import get_error_message
+
 
 class Generos(commands.Cog):
 
-    def __init__(self, bot, conn_provider):
+    def __init__(self, bot):
         self.bot = bot
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
-        self.genero_repo = criar_generos_repository(conn_provider)
+        self.api_client = bot.api_client
 
     @commands.command(name="generos")
     async def generos(self, ctx, membro: discord.Member = None):
         if membro:
-            usuario = self.usuario_repo.buscar_usuario(str(membro.id))
-            if not usuario:
-                await ctx.send(f"{membro.mention} ainda não está registrado.")
+            try:
+                resposta = await self.api_client.get(f"/genres/user/{str(membro.id)}")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
                 return
-            generos_ordenados = self.genero_repo.contar_generos_por_usuario(usuario[0])
-            if not generos_ordenados:
-                await ctx.send(f"{membro.display_name} ainda não adicionou filmes com gêneros.")
-                return
-            titulo = f"🎬 Gêneros trazidos por {membro.display_name}"
-        else:
-            generos_ordenados = self.genero_repo.contar_generos_mais_assistidos()
-            if not generos_ordenados:
+
+            generos = resposta["genres"]
+
+            if not resposta["genres"]:
                 await ctx.send("Nenhum filme registrado.")
                 return
+
+            titulo = f"🎬 Gêneros trazidos por {membro.display_name}"
+        else:
+            try:
+                resposta = await self.api_client.get(f"/genres/most-watched")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
+                return
+
+            generos = resposta["genres"]
+
+            if not generos:
+                await ctx.send("Nenhum filme registrado.")
+                return
+
             titulo = "🎞️ Gêneros mais assistidos"
 
         mensagem = f"**{titulo}:**\n"
-        for genero, contagem in generos_ordenados:
-            mensagem += f"• {genero}: {contagem} filmes\n"
+        for genero in generos:
+            mensagem += f"• {genero['genre']}: {genero['count']} filmes\n"
 
         await ctx.send(mensagem)
 
     @commands.command(name="meus-generos")
     async def meus_generos(self, ctx):
-        usuario = self.usuario_repo.buscar_usuario(str(ctx.author.id))
-        if not usuario:
-            await ctx.send("Você precisa se registrar primeiro com `!registrar <aba> <coluna>`.")
+        try:
+            resposta = await self.api_client.get(f"/genres/mine", params={"discord_id": str(ctx.author.id)})
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
             return
 
-        generos_ordenados = self.genero_repo.contar_generos_por_usuario(usuario[0])
-        if not generos_ordenados:
+        generos = resposta["genres"]
+
+        if not generos:
             await ctx.send("Você ainda não adicionou filmes com gêneros.")
             return
 
         mensagem = "**🎬 Seus gêneros mais frequentes:**\n"
-        for genero, contagem in generos_ordenados:
-            mensagem += f"• {genero}: {contagem} filmes\n"
+        for genero in generos:
+            mensagem += f"• {genero['genre']}: {genero['count']} filmes\n"
 
         await ctx.send(mensagem)
 
     @commands.command(name="generos-da-hora")
     async def generos_da_hora(self, ctx):
-        generos_ordenados = self.genero_repo.contar_generos_da_hora()
+        try:
+            resposta = await self.api_client.get(f"/genres/most-voted-good")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
+            return
 
-        if not generos_ordenados:
+        generos = resposta["genres"]
+
+        if not generos:
             await ctx.send("Nenhum voto DA HORA registrado.")
             return
 
         mensagem = "**🔥 Gêneros com mais votos DA HORA:**\n"
-        for genero, contagem in generos_ordenados:
-            mensagem += f"• {genero}: {contagem} votos\n"
+        for genero in generos:
+            mensagem += f"• {genero['genre']}: {genero['count']} votos\n"
 
         await ctx.send(mensagem)
 
     @commands.command(name="generos-lixo")
     async def generos_lixo(self, ctx):
-        generos_ordenados = self.genero_repo.contar_generos_lixo()
+        try:
+            resposta = await self.api_client.get(f"/genres/most-voted-bad")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
+            return
 
-        if not generos_ordenados:
+        generos = resposta["genres"]
+
+        if not generos:
             await ctx.send("Nenhum voto LIXO registrado.")
             return
 
         mensagem = "**🗑️ Gêneros com mais votos LIXO:**\n"
-        for genero, contagem in generos_ordenados:
-            mensagem += f"• {genero}: {contagem} votos\n"
+        for genero in generos:
+            mensagem += f"• {genero['genre']}: {genero['count']} votos\n"
 
         await ctx.send(mensagem)
 
 async def setup(bot):
-    conn_provider = getattr(bot, "conn_provider", None)
-    await bot.add_cog(Generos(bot, conn_provider))
+    await bot.add_cog(Generos(bot))

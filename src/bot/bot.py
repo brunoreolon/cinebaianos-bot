@@ -1,17 +1,14 @@
 from dotenv import load_dotenv
 
-from src.bot.di.connection_factory import get_connection_provider
-
 load_dotenv()
 
 import discord
 import os
 import logging
 import asyncio
+from src.bot.api_client import ApiClient
 
 from discord.ext import commands
-
-from src.bot.di.schemas_factory import get_schemas_repository
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,6 +26,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     logging.info(f"✅ Bot conectado como {bot.user}")
+
     try:
         synced = await bot.tree.sync()
         logging.info(f"🔄 Comandos de barra sincronizados: {len(synced)}")
@@ -36,11 +34,8 @@ async def on_ready():
         logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
 async def main():
-    conn_provider = get_connection_provider()
-    bot.conn_provider = conn_provider
-
-    schema_repo = get_schemas_repository(conn_provider)
-    schema_repo.criar_tabelas()
+    api_client = await ApiClient.create()
+    bot.api_client = api_client
 
     await bot.load_extension("src.bot.cogs.filmes")
     await bot.load_extension("src.bot.cogs.votos")

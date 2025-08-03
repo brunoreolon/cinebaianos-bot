@@ -1,14 +1,13 @@
-import asyncio
-
 from discord.ext import commands
 
-from src.bot.sincronizar_filmes import sincronizar_planilha
+from src.bot.utils.error_utils import get_error_message
+from src.bot.exception.api_error import ApiError
 
 class Sincronizacao(commands.Cog):
 
-    def __init__(self, bot, conn_provider):
+    def __init__(self, bot):
         self.bot = bot
-        self.conn_provider = conn_provider
+        self.api_client = bot.api_client
 
     @commands.command(name='sincronizar')
     @commands.has_permissions(administrator=True)
@@ -17,17 +16,21 @@ class Sincronizacao(commands.Cog):
 
         try:
             await ctx.send("📥 Lendo filmes e atualizando banco de dados...")
-            total_filmes, total_votos, elapsed = await asyncio.to_thread(
-                sincronizar_planilha, self.conn_provider
-            )
 
+            try:
+                resposta = await self.api_client.post("/sync")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
+                return
+
+            elapsed = int(resposta["execution_time_seconds"])
             minutos = int(elapsed // 60)
             segundos = int(elapsed % 60)
 
             await ctx.send(
                 f"✅ **Sincronização concluída com sucesso em {minutos} minutos e {segundos} segundos!**\n\n"
-                f"🎬 Filmes Sincronizados: **{total_filmes}**\n"
-                f"🗳️ Votos Registrados: **{total_votos}**"
+                f"🎬 Filmes Sincronizados: **{resposta['total_movie']}**\n"
+                f"🗳️ Votos Registrados: **{resposta['total_votes']}**"
             )
         except Exception as e:
             await ctx.send(f"❌ Ocorreu um erro durante a sincronização:\n```{str(e)}```")
@@ -40,5 +43,4 @@ class Sincronizacao(commands.Cog):
             raise error
 
 async def setup(bot):
-    conn_provider = getattr(bot, "conn_provider", None)
-    await bot.add_cog(Sincronizacao(bot, conn_provider))
+    await bot.add_cog(Sincronizacao(bot))
