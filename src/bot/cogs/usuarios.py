@@ -2,13 +2,10 @@ import discord
 
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_usuarios_repository
-
 class Usuarios(commands.Cog):
 
     def __init__(self, bot, conn_provider):
         self.bot = bot
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
 
     @commands.command(name="registrar")
     async def registrar(self, ctx, *args):

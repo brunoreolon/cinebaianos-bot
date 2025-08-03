@@ -1,13 +1,9 @@
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_usuarios_repository, criar_votos_repository
-
 class Rankings(commands.Cog):
 
     def __init__(self, bot, conn_provider):
         self.bot = bot
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
-        self.voto_repo = criar_votos_repository(conn_provider)
 
     @commands.command(name="ranking")
     async def ranking(self, ctx):

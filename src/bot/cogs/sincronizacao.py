@@ -2,8 +2,6 @@ import asyncio
 
 from discord.ext import commands
 
-from src.bot.sincronizar_filmes import sincronizar_planilha
-
 class Sincronizacao(commands.Cog):
 
     def __init__(self, bot, conn_provider):

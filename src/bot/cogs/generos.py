@@ -2,14 +2,10 @@ import discord
 
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_usuarios_repository, criar_generos_repository
-
 class Generos(commands.Cog):
 
     def __init__(self, bot, conn_provider):
         self.bot = bot
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
-        self.genero_repo = criar_generos_repository(conn_provider)
 
     @commands.command(name="generos")
     async def generos(self, ctx, membro: discord.Member = None):

@@ -2,17 +2,10 @@ import discord
 
 from discord.ext import commands
 
-from src.bot.di.repository_factory import criar_filmes_repository, criar_usuarios_repository, criar_votos_repository
-from src.bot.sheets.sheets import adicionar_filme_na_planilha
-from src.bot.tmdb import buscar_detalhes_filme
-
 class Filmes(commands.Cog):
 
     def __init__(self, bot, conn_provider):
         self.bot = bot
-        self.filme_repo = criar_filmes_repository(conn_provider)
-        self.usuario_repo = criar_usuarios_repository(conn_provider)
-        self.voto_repo = criar_votos_repository(conn_provider)
 
     @commands.command(name="adicionar")
     async def adicionar(self, ctx, *, args=None):
