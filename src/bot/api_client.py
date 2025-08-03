@@ -29,6 +29,7 @@ class ApiClient:
         url = f"{Config.BASE_URL}{path}"
         try:
             async with self.session.request(method, url, **kwargs) as resp:
+                content = await resp.text()  # pega o corpo como texto, independente de JSON
                 if resp.status >= 400:
                     try:
                         data = await resp.json()
@@ -38,7 +39,8 @@ class ApiClient:
                             status=resp.status
                         )
                     except aiohttp.ContentTypeError:
-                        raise ApiError("unknown_error", "Erro desconhecido.", resp.status)
+                        # Mostra o conteúdo para ajudar a debugar
+                        raise ApiError("unknown_error", f"Erro desconhecido. Response content: {content}", resp.status)
                 return await resp.json()
         except aiohttp.ClientError as e:
             raise ApiError("network_error", str(e), 500)
