@@ -1,9 +1,10 @@
-from config import Config
 
 import discord
 import asyncio
 import logging
 from discord.ext import commands
+
+from src.bot.config import Config
 from src.bot.api_client import ApiClient
 
 logging.basicConfig(

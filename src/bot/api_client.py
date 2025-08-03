@@ -1,5 +1,6 @@
-from config import Config
 import aiohttp
+
+from src.bot.config import Config
 
 
 class ApiClient:
