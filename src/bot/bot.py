@@ -6,6 +6,7 @@ import discord
 import os
 import logging
 import asyncio
+from src.bot.api_client import ApiClient
 
 from discord.ext import commands
 
@@ -25,6 +26,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_ready():
     logging.info(f"✅ Bot conectado como {bot.user}")
+
     try:
         synced = await bot.tree.sync()
         logging.info(f"🔄 Comandos de barra sincronizados: {len(synced)}")
@@ -32,6 +34,9 @@ async def on_ready():
         logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
 async def main():
+    api_client = await ApiClient.create()
+    bot.api_client = api_client
+
     await bot.load_extension("src.bot.cogs.filmes")
     await bot.load_extension("src.bot.cogs.votos")
     await bot.load_extension("src.bot.cogs.rankings")

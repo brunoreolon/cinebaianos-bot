@@ -1,28 +1,36 @@
 from discord.ext import commands
 
+from src.bot.exception.api_error import ApiError
+from src.bot.utils.error_utils import get_error_message
+
+
 class Rankings(commands.Cog):
 
-    def __init__(self, bot, conn_provider):
+    def __init__(self, bot):
         self.bot = bot
+        self.api_client = bot.api_client
 
     @commands.command(name="ranking")
     async def ranking(self, ctx):
-        ranking = self.voto_repo.contar_todos_os_votos_por_usuario()
+        try:
+            resposta = await self.api_client.get(f"/ranking")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
+            return
 
-        if not ranking:
+        if not resposta:
             await ctx.send("Nenhum voto registrado ainda.")
             return
 
         msg = "**📊 Ranking Geral:**\n"
-        for nome, da_hora, lixo in ranking:
-            msg += f"• **{nome}** — 🏆 DA HORA: `{da_hora}` | 🗑️ LIXO: `{lixo}`\n"
+        for usuario_votos in resposta:
+            usuario = usuario_votos["user"]
+            msg += f"• **{usuario['name']}** — 🏆 DA HORA: `{usuario_votos['total_da_hora']}` | 🗑️ LIXO: `{usuario_votos['total_lixo']}`\n"
 
         await ctx.send(msg)
 
     @commands.command(name="da-hora")
     async def da_hora(self, ctx, *, argumento: str = None):
-        voto_tipo = "DA HORA"
-
         # Se passou argumento, tenta interpretar como menção
         if argumento:
             try:
@@ -31,38 +39,31 @@ class Rankings(commands.Cog):
                 await ctx.send("❌ Argumento inválido. Use uma menção ao usuário (`@usuário`) ou deixe vazio para ver o ranking.")
                 return
 
-            usuario = self.usuario_repo.buscar_usuario(str(membro.id))
-            if not usuario:
-                await ctx.send(f"{membro.mention} ainda não está registrado.")
+            try:
+                resposta = await self.api_client.get(f"/ranking/da-hora/{str(membro.id)}")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
                 return
 
-            total = self.voto_repo.contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
-            await ctx.send(f"🏆 {membro.display_name} recebeu **{total}** votos *DA HORA*.")
+            await ctx.send(f"🏆 {membro.display_name} recebeu **{resposta['total_da_hora']}** votos *DA HORA*.")
             return
 
         # Sem argumento: ranking completo
-        usuarios = self.usuario_repo.buscar_todos_os_usuarios()
-        if not usuarios:
-            await ctx.send("Nenhum usuário registrado ainda.")
+        try:
+            resposta = await self.api_client.get(f"/ranking/da-hora")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
             return
 
-        ranking = []
-        for discord_id, nome, _, _ in usuarios:
-            total = self.voto_repo.contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
-            ranking.append((nome, total))
-
-        # Ordenar por quantidade de votos decrescente
-        ranking.sort(key=lambda x: x[1], reverse=True)
-
         msg = "**🏆 Ranking — Top DA HORA:**\n"
-        for i, (nome, total) in enumerate(ranking, 1):
-            msg += f"{i}. **{nome}** — {total} votos\n"
+        for i, usuario_ranking in enumerate(resposta, start=1):
+            usuario = usuario_ranking["user"]
+            msg += f"{i}. **{usuario['name']}** — {usuario_ranking['total_da_hora']} votos\n"
+
         await ctx.send(msg)
 
     @commands.command(name="lixos")
     async def lixos(self, ctx, *, argumento: str = None):
-        voto_tipo = "LIXO"
-
         if argumento:
             try:
                 membro = await commands.MemberConverter().convert(ctx, argumento)
@@ -70,32 +71,27 @@ class Rankings(commands.Cog):
                 await ctx.send("❌ Argumento inválido. Use uma menção ao usuário (`@usuário`) ou deixe vazio para ver o ranking.")
                 return
 
-            usuario = self.usuario_repo.buscar_usuario(str(membro.id))
-            if not usuario:
-                await ctx.send(f"{membro.mention} ainda não está registrado.")
+            try:
+                resposta = await self.api_client.get(f"/ranking/lixos/{str(membro.id)}")
+            except ApiError as e:
+                await ctx.send(get_error_message(e.code, e.message))
                 return
 
-            total = self.voto_repo.contar_votos_recebidos_todos_usuario(str(membro.id), voto_tipo)
-            await ctx.send(f"🗑️ {membro.display_name} recebeu **{total}** votos *LIXO*.")
+            await ctx.send(f"🗑️ {membro.display_name} recebeu **{resposta['total_lixo']}** votos *LIXO*.")
             return
 
-        usuarios = self.usuario_repo.buscar_todos_os_usuarios()
-        if not usuarios:
-            await ctx.send("Nenhum usuário registrado ainda.")
+        try:
+            resposta = await self.api_client.get(f"/ranking/lixo")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.message))
             return
-
-        ranking = []
-        for discord_id, nome, _, _ in usuarios:
-            total = self.voto_repo.contar_votos_recebidos_todos_usuario(discord_id, voto_tipo)
-            ranking.append((nome, total))
-
-        ranking.sort(key=lambda x: x[1], reverse=True)
 
         msg = "**🗑️ Ranking — Top Lixos:**\n"
-        for i, (nome, total) in enumerate(ranking, 1):
-            msg += f"{i}. **{nome}** — {total} votos\n"
+        for i, usuario_ranking in enumerate(resposta, 1):
+            usuario = usuario_ranking["user"]
+            msg += f"{i}. **{usuario['name']}** — {usuario_ranking['total_lixo']} votos\n"
+
         await ctx.send(msg)
 
 async def setup(bot):
-    conn_provider = getattr(bot, "conn_provider", None)
-    await bot.add_cog(Rankings(bot, conn_provider))
+    await bot.add_cog(Rankings(bot))
