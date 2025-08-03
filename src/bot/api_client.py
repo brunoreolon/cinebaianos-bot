@@ -48,7 +48,7 @@ class ApiClient:
                             status=resp.status
                         )
                     except aiohttp.ContentTypeError as e:
-                        logging.info(f"ERRO: {e}")
+                        logging.info(f"ERRO1: {e}")
 
                         # Mostra o conteúdo para ajudar a debugar
                         raise ApiError("unknown_error", f"Erro desconhecido. Response content: {content}", resp.status)

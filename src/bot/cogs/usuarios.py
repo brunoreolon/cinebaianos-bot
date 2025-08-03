@@ -47,7 +47,7 @@ class Usuarios(commands.Cog):
         try:
             usuario = await self.api_client.get(f"/users/{str(membro.id)}")
         except ApiError as e:
-            await ctx.send(e)
+            await ctx.send(get_error_message(e.code, e.message))
             return
 
         if usuario:
