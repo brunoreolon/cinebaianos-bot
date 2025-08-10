@@ -83,8 +83,8 @@ class Filmes(commands.Cog):
             color=0x00ff00
         )
 
-        if resposta["movie"]["poster_path"]:
-            embed.set_image(url=f"https://image.tmdb.org/t/p/original{resposta["movie"]["poster_path"]}")
+        if resposta['movie']['poster_path']:
+            embed.set_image(url=f"https://image.tmdb.org/t/p/original{resposta['movie']['poster_path']}")
 
         voto_texto = VOTOS_MAPA.get(voto) if voto else None
 
