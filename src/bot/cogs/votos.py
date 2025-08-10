@@ -16,7 +16,7 @@ class Votos(commands.Cog):
         if id_filme is None or voto is None:
             await ctx.send(
                 "❌ Uso incorreto do comando.\n"
-                "Formato correto:\n`!votar <id_filme> <voto>`\n\n"
+                "Formato correto:\n`!votar [id_filme] [voto]`\n\n"
                 "**Votos possíveis:**\n"
                 "`1 - DA HORA`\n"
                 "`2 - LIXO`\n"
@@ -45,15 +45,6 @@ class Votos(commands.Cog):
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.message))
             return
-
-        # if not filme:
-        #     await ctx.send("⚠️ Filme não encontrado no banco. Ele pode ter sido adicionado manualmente ou fora do sistema.")
-        #     return
-
-
-        # if not sucesso:
-        #     await ctx.send("❌ Erro ao registrar o voto na planilha. Verifique se o ID da linha e a aba estão corretos.")
-        #     return
 
         aba_responsavel = resposta["movie"]["responsible"]["tab"]
         filme = resposta["movie"]["title"]

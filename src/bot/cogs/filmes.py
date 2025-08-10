@@ -15,11 +15,22 @@ class Filmes(commands.Cog):
     @commands.command(name="adicionar")
     async def adicionar(self, ctx, *, args=None):
         if not args:
-            await ctx.send("❌ Comando incorreto.\nFormato esperado:\n`!adicionar \"Nome do Filme (ano)\" [voto opcional]`\n\nExemplo:\n`!adicionar \"Clube da Luta (1999)\" 1`")
+            await ctx.send(
+                "❌ Comando incorreto.\nFormato esperado:\n"
+                "`!adicionar [@usuario opcional] \"Nome do Filme (ano)\" [voto opcional]`\n\n"
+                "Exemplo:\n`!adicionar \"Clube da Luta (1999)\" 1`\n"
+                "Ou para outro usuário:\n`!adicionar @usuario \"Clube da Luta (1999)\" 1`"
+            )
             return
 
+        if ctx.message.mentions:
+            usuario_alvo = ctx.message.mentions[0]
+            args = args.replace(f"<@{usuario_alvo.id}>", "").replace(f"<@!{usuario_alvo.id}>", "").strip()
+        else:
+            usuario_alvo = ctx.author
+
         try:
-            resposta = await self.api_client.get(f"/users/{ctx.author.id}")
+            resposta = await self.api_client.get(f"/users/{usuario_alvo.id}")
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.message))
             return
@@ -39,7 +50,7 @@ class Filmes(commands.Cog):
                 voto = voto_int
                 nome_com_ano = partes[0]
             else:
-                await ctx.send("⚠️ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
+                await ctx.send("❌ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
                 return
         else:
             nome_com_ano = args
@@ -83,7 +94,7 @@ class Filmes(commands.Cog):
         linha = resposta["movie"]["spreadsheet_row"]
         id_filme = resposta["movie"]["id"]
 
-        embed.set_footer(text=f"ID na planilha: {linha}\nID do Filme: {id_filme}")
+        embed.set_footer(text=f"Responsável: {usuario_alvo.display_name}\nLinha na planilha: {linha}\nID do Filme: {id_filme}")
         await ctx.send(embed=embed)
 
     @commands.command(name="filmes")

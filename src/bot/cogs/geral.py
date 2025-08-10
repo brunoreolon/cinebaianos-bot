@@ -16,7 +16,7 @@ class Geral(commands.Cog):
             "• `!meus-filmes` — Lista seus próprios filmes adicionados\n\n"
     
             "**✅ Votação:**\n"
-            "• `!votar <id filme> <voto>` — Vota em um filme (1 = DA HORA, 2 = LIXO, 3 = NÃO ASSISTI)\n\n"
+            "• `!votar [id filme] [voto]` — Vota em um filme (1 = DA HORA, 2 = LIXO, 3 = NÃO ASSISTI)\n\n"
     
             "**🏆 Rankings:**\n"
             "• `!ranking` — Quantidade total de votos DA HORA e LIXO por usuário\n"
@@ -33,7 +33,7 @@ class Geral(commands.Cog):
             "• `!generos-lixo` — Gêneros com mais votos LIXO\n\n"
     
             "**👤 Usuário:**\n"
-            "• `!registrar <aba> <coluna>` — Registra sua aba e coluna na planilha\n"
+            "• `!registrar [aba] [coluna]` — Registra sua aba e coluna na planilha\n"
             "• `!perfil` — Exibe seu perfil\n"
             "• `!perfil @usuário` — Exibe o perfil de outro usuário\n"
             "• `!usuarios` — Lista todos os usuários registrados\n\n"

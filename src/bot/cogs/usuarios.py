@@ -13,7 +13,7 @@ class Usuarios(commands.Cog):
     @commands.command(name="registrar")
     async def registrar(self, ctx, *args):
         if len(args) < 2:
-            await ctx.send("❌ Uso incorreto. Use: `!registrar <aba> <coluna>`")
+            await ctx.send("❌ Uso incorreto. Use: `!registrar [aba] [coluna]`")
             return
 
         aba = " ".join(args[:-1])  # Tudo menos o último é a aba
@@ -58,7 +58,7 @@ class Usuarios(commands.Cog):
 
             await ctx.send(f"\n**Perfil de {membro.display_name}**\n🌐 Nome: `{nome}`\n📧 Email: `{email}`\n🗂️ Aba: `{aba}`\n📊 Coluna: `{coluna}`")
         else:
-            await ctx.send(f"{membro.mention} ainda não está registrado. Use `!registrar <aba> <coluna>`.")
+            await ctx.send(f"{membro.mention} ainda não está registrado. Use `!registrar [aba] [coluna]`.")
 
     @commands.command(name="usuarios")
     async def listar_usuarios(self, ctx, *args):
