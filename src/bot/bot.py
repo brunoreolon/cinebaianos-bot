@@ -39,6 +39,8 @@ async def setup_bot():
 
     # Carregar as extensões (cogs)
     cogs = [
+        "src.bot.handlers.error_handler",
+        "src.bot.cogs.admin",
         "src.bot.cogs.filmes",
         "src.bot.cogs.votos",
         "src.bot.cogs.rankings",

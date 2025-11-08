@@ -33,6 +33,76 @@ class ApiClient:
 
         return client
 
+    async def login(self):
+        """Força login na API, obtendo novos tokens."""
+        await self._authenticate()
+        return f"✅ Login realizado com sucesso. Token atualizado."
+
+    async def refresh_token_manual(self):
+        """Força o refresh do token de acesso usando o refresh token atual."""
+        try:
+            await self._refresh_token()
+            return "Token atualizado com sucesso."
+        except ApiError as e:
+            raise e
+        except Exception as e:
+            raise e
+
+    async def logout(self):
+        """
+        Método público que expõe o logout para comandos do bot.
+        """
+        return await self._logout()
+
+    async def _logout(self):
+        """
+        Método interno que faz logout chamando o endpoint da API e limpando tokens.
+        """
+        if not self.access_token:
+            return "Você já está desconectado."
+
+        payload = {"refreshToken": self.refresh_token}
+
+        url = f"{Config.API_BASE_URL}/auth/logout"
+        try:
+            async with self.session.post(url, json=payload) as resp:
+                if resp.status != 204:
+                    try:
+                        error_data = await resp.json()
+                    except Exception:
+                        error_data = {}
+
+                    logging.error(
+                        "Falha ao fazer logout. Status: %s, Resposta: %s",
+                        resp.status, error_data
+                    )
+
+                    raise ApiError(
+                        code=error_data.get("errorCode"),
+                        title=error_data.get("title"),
+                        detail=error_data.get("detail"),
+                        status=resp.status,
+                        options=None
+                    )
+
+                # Limpa tokens locais
+                self.access_token = None
+                self.refresh_token = None
+                self.session.headers.pop("Authorization", None)
+
+                logging.info("✅ Logout realizado com sucesso.")
+                return "Logout realizado com sucesso."
+
+        except aiohttp.ClientError as e:
+            logging.error(f"Erro de rede ao tentar logout: {e}")
+            raise ApiError(
+                code="network_error",
+                title="Erro de rede",
+                detail=str(e),
+                status=500,
+                options=None
+            )
+
     async def _authenticate(self):
         logging.info("🔑 Autenticando o bot na API...")
 

@@ -9,6 +9,11 @@ class Geral(commands.Cog):
     async def comandos(self, ctx):
         mensagem = (
             "**📜 Lista de Comandos Disponíveis:**\n\n"
+            "**⚙️ Admin:**\n"
+            "• `!login` — 🔑 Faz login manual na API (admin somente)\n"
+            "• `!refresh-token` — 🔄 Atualiza manualmente o token de acesso (admin somente)\n"
+            "• `!logout` — 🚪 Faz logout do bot (admin somente)\n\n"
+            
             "**🎥 Filmes:**\n"
             "• `!adicionar \"Nome do Filme (ano)\" [voto opcional]` — Adiciona um filme\n"
             "• `!filmes` — Lista todos os filmes por usuário\n"
@@ -46,20 +51,6 @@ class Geral(commands.Cog):
             "• `!github` — Mostra o link do projeto no GitHub\n\n"
         )
         await ctx.send(mensagem)
-
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        if hasattr(ctx.command, 'on_error'):
-            return
-
-        if isinstance(error, commands.CommandNotFound):
-            await ctx.send("❌ Esse comando não existe. Use `!comandos` para ver a lista de comandos.")
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("⚠️ Faltou um argumento necessário. Verifique a forma correta com `!comandos`.")
-        elif isinstance(error, commands.BadArgument):
-            await ctx.send("⚠️ Argumento inválido. Confira se digitou corretamente.")
-        else:
-            raise error
 
 async def setup(bot):
     await bot.add_cog(Geral(bot))
