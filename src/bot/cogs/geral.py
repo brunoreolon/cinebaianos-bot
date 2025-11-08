@@ -37,10 +37,10 @@ class Geral(commands.Cog):
             "• `!perfil` — Exibe seu perfil\n"
             "• `!perfil @usuário` — Exibe o perfil de outro usuário\n"
             "• `!usuarios` — Lista todos os usuários registrados\n\n"
-    
+
             "**🔄 Sincronização:**\n"
-            "• `!sincronizar` — Sincroniza os dados da planilha com o banco (admin somente)\n\n"
-    
+            "• ~~`!sincronizar` — Sincroniza os dados da planilha com o banco (admin somente)~~ _(desativado)_\n\n"
+
             "**📎 Outros:**\n"
             "• `!planilha` — Exibe o link da planilha de controle de filmes\n"
             "• `!github` — Mostra o link do projeto no GitHub\n\n"

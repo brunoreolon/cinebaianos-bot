@@ -14,50 +14,38 @@ class Generos(commands.Cog):
 
     @commands.command(name="generos")
     async def generos(self, ctx, membro: discord.Member = None):
-        if membro:
-            try:
-                resposta = await self.api_client.get(f"/genres/user/{str(membro.id)}")
-            except ApiError as e:
-                await ctx.send(get_error_message(e.code, e.message))
-                return
+        try:
+            if membro:
+                resposta = await self.api_client.get(f"/genres/users/{membro.id}")
+                titulo = f"🎬 Gêneros trazidos por {membro.display_name}"
+            else:
+                resposta = await self.api_client.get(f"/genres/rankings", params={"type": 1})
+                titulo = f"🎞️ Gêneros mais assistidos"
 
-            generos = resposta["genres"]
+            generos = resposta  # agora já é lista
+        except ApiError as e:
+            await ctx.send(f"❌ {e.message}")
+            return
 
-            if not resposta["genres"]:
-                await ctx.send("Nenhum filme registrado.")
-                return
-
-            titulo = f"🎬 Gêneros trazidos por {membro.display_name}"
-        else:
-            try:
-                resposta = await self.api_client.get(f"/genres/most-watched")
-            except ApiError as e:
-                await ctx.send(get_error_message(e.code, e.message))
-                return
-
-            generos = resposta["genres"]
-
-            if not generos:
-                await ctx.send("Nenhum filme registrado.")
-                return
-
-            titulo = "🎞️ Gêneros mais assistidos"
+        if not generos:
+            await ctx.send("Nenhum gênero registrado.")
+            return
 
         mensagem = f"**{titulo}:**\n"
         for genero in generos:
-            mensagem += f"• {genero['genre']}: {genero['count']} filmes\n"
+            mensagem += f"• {genero.get("name")}: {genero.get("total")} filmes\n"
 
         await ctx.send(mensagem)
 
     @commands.command(name="meus-generos")
     async def meus_generos(self, ctx):
         try:
-            resposta = await self.api_client.get(f"/genres/mine", params={"discord_id": str(ctx.author.id)})
+            resposta = await self.api_client.get(f"/genres/users/{str(ctx.author.id)}")
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        generos = resposta["genres"]
+        generos = resposta
 
         if not generos:
             await ctx.send("Você ainda não adicionou filmes com gêneros.")
@@ -65,47 +53,41 @@ class Generos(commands.Cog):
 
         mensagem = "**🎬 Seus gêneros mais frequentes:**\n"
         for genero in generos:
-            mensagem += f"• {genero['genre']}: {genero['count']} filmes\n"
+            mensagem += f"• {genero.get("name")}: {genero.get("total")} filmes\n"
 
         await ctx.send(mensagem)
 
     @commands.command(name="generos-da-hora")
     async def generos_da_hora(self, ctx):
-        try:
-            resposta = await self.api_client.get(f"/genres/most-voted-good")
-        except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
-            return
-
-        generos = resposta["genres"]
-
-        if not generos:
-            await ctx.send("Nenhum voto DA HORA registrado.")
-            return
-
-        mensagem = "**🔥 Gêneros com mais votos DA HORA:**\n"
-        for genero in generos:
-            mensagem += f"• {genero['genre']}: {genero['count']} votos\n"
-
-        await ctx.send(mensagem)
+        await self._generos_por_tipo(ctx, tipo=1, titulo_emoji="🔥", titulo_texto="DA HORA")
 
     @commands.command(name="generos-lixo")
     async def generos_lixo(self, ctx):
-        try:
-            resposta = await self.api_client.get(f"/genres/most-voted-bad")
-        except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
-            return
+        await self._generos_por_tipo(ctx, tipo=2, titulo_emoji="🗑️", titulo_texto="LIXO")
 
-        generos = resposta["genres"]
+    async def _generos_por_tipo(self, ctx, tipo: int, titulo_emoji: str, titulo_texto: str):
+        try:
+            resposta = await self.api_client.get("/genres/vote-counts", params={"type": tipo})
+            generos = resposta
+        except ApiError as e:
+            await ctx.send(f"❌ {e.message}")
+            return
 
         if not generos:
-            await ctx.send("Nenhum voto LIXO registrado.")
+            await ctx.send(f"Nenhum voto {titulo_texto.upper()} registrado.")
             return
 
-        mensagem = "**🗑️ Gêneros com mais votos LIXO:**\n"
+        mensagem = f"**{titulo_emoji} Gêneros com mais votos {titulo_texto.upper()}:**\n"
+
         for genero in generos:
-            mensagem += f"• {genero['genre']}: {genero['count']} votos\n"
+            nome = genero["genre"]
+            votos = genero.get("votes", [])
+            total_votos = 0
+            for voto in votos:
+                if voto["type"]["id"] == tipo:
+                    total_votos = voto["totalVotes"]
+                    break
+            mensagem += f"• {nome}: {total_votos} votos\n"
 
         await ctx.send(mensagem)
 

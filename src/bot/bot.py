@@ -4,6 +4,7 @@ import asyncio
 import logging
 from discord.ext import commands
 
+from src.bot.exception.api_error import ApiError
 from src.bot.config import Config
 from src.bot.api_client import ApiClient
 
@@ -24,7 +25,7 @@ def create_bot():
         logging.info(f"✅ Bot conectado como {bot.user}")
         try:
             synced = await bot.tree.sync()
-            logging.info(f"🔄 Comandos de barra sincronizados: {len(synced)}")
+            logging.info(f"✅ Comandos de barra sincronizados: {len(synced)}")
         except Exception as e:
             logging.error(f"Erro ao sincronizar comandos de barra: {e}")
 
@@ -55,11 +56,30 @@ async def setup_bot():
     return bot
 
 async def main():
-    bot = await setup_bot()
-    await bot.start(Config.TOKEN)
+    bot = None
+    api_client = None
+
+    try:
+        bot = await setup_bot()
+        api_client = bot.api_client
+
+        await bot.start(Config.DISCORD_TOKEN)
+
+    except ApiError as e:
+        logging.error(f"❌ Erro na API: {e.title or e.code} - {e.detail}")
+    except KeyboardInterrupt:
+        logging.info("Bot parado pelo usuário.")
+    except Exception as e:
+        logging.exception(f"Erro inesperado: {e}")
+    finally:
+        if api_client:
+            await api_client.close()
+
+        if bot and not bot.is_closed():
+            await bot.close()
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Bot parado pelo usuário.")
+        logging.info("Bot parado pelo usuário.")

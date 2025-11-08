@@ -12,7 +12,9 @@ class Links(commands.Cog):
 
     @commands.command(name='github')
     async def github(self, ctx):
-        await ctx.send("🧠 Código-fonte disponível no GitHub:\nhttps://github.com/brunoreolon/bot-discord-cinebaianos")
+        await ctx.send("🧠 Código-fonte disponível no GitHub:\n"
+                       "Bot - https://github.com/brunoreolon/bot-discord-cinebaianos\n"
+                       "API - https://github.com/brunoreolon/cinebaianos-api")
 
 async def setup(bot):
     await bot.add_cog(Links(bot))

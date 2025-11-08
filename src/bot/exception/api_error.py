@@ -1,6 +1,8 @@
 class ApiError(Exception):
-    def __init__(self, code, message, status):
+    def __init__(self, code, title, detail, status, options):
         self.code = code
-        self.message = message
+        self.title = title
+        self.detail = detail
         self.status = status
-        super().__init__(message)
+        self.options = options
+        super().__init__(detail)

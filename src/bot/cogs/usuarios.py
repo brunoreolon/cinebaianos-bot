@@ -12,32 +12,27 @@ class Usuarios(commands.Cog):
 
     @commands.command(name="registrar")
     async def registrar(self, ctx, *args):
-        if len(args) < 2:
-            await ctx.send("❌ Uso incorreto. Use: `!registrar [aba] [coluna]`")
+        if len(args) < 1:
+            await ctx.send("❌ Uso incorreto. Use: `!registrar [email]`")
             return
-
-        aba = " ".join(args[:-1])  # Tudo menos o último é a aba
-        coluna = args[-1]
 
         discord_id = str(ctx.author.id)
         nome = ctx.author.display_name
+        email = args[0]
 
         payload = {
-            "discord_id": discord_id,
+            "discordId": discord_id,
             "name": nome,
-            "tab": aba,
-            "column": coluna,
-            "email": "bruno.reolonn@gmail.com",
-            "password": "bruno1342"
+            "email": email
         }
 
         try:
             resposta = await self.api_client.post("/users", json=payload)
         except ApiError as e:
-            await ctx.send(f"{ctx.author.mention} " + get_error_message(e.code, e.message))
+            await ctx.send(f"{ctx.author.mention} " + get_error_message(e.code, e.detail))
             return
 
-        await ctx.send(f"✅ {ctx.author.mention} registrado com sucesso!\n🌐 Nome: **{nome}**\n📧 Email: **{resposta['email']}**\n🗂️ Aba: **{aba}**\n📊 Coluna: **{coluna}**")
+        await ctx.send(f"✅ {ctx.author.mention} registrado com sucesso!\n🌐 Nome: **{nome}**\n📧 Email: **{resposta['email']}**")
 
 
     @commands.command(name="perfil")
@@ -47,16 +42,20 @@ class Usuarios(commands.Cog):
         try:
             usuario = await self.api_client.get(f"/users/{str(membro.id)}")
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
         if usuario:
+            discord_id = str(usuario["discordId"])
             nome = usuario["name"]
-            aba = usuario["tab"]
-            coluna = usuario["column"]
             email = usuario["email"]
 
-            await ctx.send(f"\n**Perfil de {membro.display_name}**\n🌐 Nome: `{nome}`\n📧 Email: `{email}`\n🗂️ Aba: `{aba}`\n📊 Coluna: `{coluna}`")
+            await ctx.send(
+                f"\n**Perfil de {membro.display_name}**\n"
+                f"🆔 Discord ID: `{discord_id}`\n"
+                f"🌐 Nome: `{nome}`\n"
+                f"📧 Email: `{email}`\n"
+            )
         else:
             await ctx.send(f"{membro.mention} ainda não está registrado. Use `!registrar [aba] [coluna]`.")
 
@@ -69,7 +68,7 @@ class Usuarios(commands.Cog):
         try:
             usuarios = await self.api_client.get(f"/users")
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
         if not usuarios:
@@ -78,17 +77,15 @@ class Usuarios(commands.Cog):
 
         msg = "**👥 Usuários Registrados:**\n\n"
         for usuario in usuarios:
-            mention = f"<@{usuario['discord_id']}>"
-            msg += f"• {mention} — `{usuario['name']}` | Aba: `{usuario['tab']}`, Coluna: `{usuario['column']}`\n"
+
+            nome = usuario["name"]
+            email = usuario.get("email")
+            discord_id = usuario["discordId"]
+
+            mention = f"<@{discord_id}>"
+            msg += f"• {mention} — 🆔 `{discord_id}` — 🌐 `{nome}` — 📧 `{email}`\n"
 
         await ctx.send(msg)
-
-    @perfil.error
-    async def perfil_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
-            await ctx.send("❌ Usuário não encontrado. Use: `!perfil [@usuário]` ou apenas `!perfil` para ver o seu.")
-        else:
-            raise error
 
 async def setup(bot):
     await bot.add_cog(Usuarios(bot))

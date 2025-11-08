@@ -13,25 +13,45 @@ class Rankings(commands.Cog):
     @commands.command(name="ranking")
     async def ranking(self, ctx):
         try:
-            resposta = await self.api_client.get(f"/ranking")
+            resposta = await self.api_client.get(f"/votes/rankings")
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
         if not resposta:
             await ctx.send("Nenhum voto registrado ainda.")
             return
 
+        icones = {
+            "Da Hora": "🏆",
+            "Lixo": "🗑️",
+            "Não Assisti": "❌"
+        }
+
         msg = "**📊 Ranking Geral:**\n"
         for usuario_votos in resposta:
             usuario = usuario_votos["user"]
-            msg += f"• **{usuario['name']}** — 🏆 DA HORA: `{usuario_votos['total_da_hora']}` | 🗑️ LIXO: `{usuario_votos['total_lixo']}`\n"
+            votes = usuario_votos.get("votes", [])
+
+            votes_sorted = sorted(votes, key=lambda v: v["type"]["id"])
+
+            # monta a parte de votos dinamicamente, com ícones
+            votos_str = " | ".join(
+                f"{icones.get(vote['type']['description'], '')} {vote['type']['description']}: `{vote.get('totalVotes', 0)}`"
+                for vote in votes_sorted
+            )
+
+            msg += f"• **{usuario['name']}** — {votos_str}\n"
 
         await ctx.send(msg)
 
+    # Comandos refatorados
     @commands.command(name="da-hora")
     async def da_hora(self, ctx, *, argumento: str = None):
-        # Se passou argumento, tenta interpretar como menção
+        type_id = 1
+        icone = "🏆"
+        titulo = "Top DA HORA"
+
         if argumento:
             try:
                 membro = await commands.MemberConverter().convert(ctx, argumento)
@@ -40,30 +60,32 @@ class Rankings(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/ranking/da-hora/{str(membro.id)}")
+                resposta = await self.api_client.get(f"/votes/users/{membro.id}", params={"type": type_id})
             except ApiError as e:
-                await ctx.send(get_error_message(e.code, e.message))
+                await ctx.send(get_error_message(e.code, e.detail))
                 return
 
-            await ctx.send(f"🏆 {membro.display_name} recebeu **{resposta['total_da_hora']}** votos *DA HORA*.")
+            votes = resposta.get("votes", [])
+            total = await self._get_total_votes_for_type(votes, type_id)
+            await ctx.send(f"{icone} {membro.display_name} recebeu **{total}** votos *DA HORA*.")
             return
 
-        # Sem argumento: ranking completo
+        # ranking completo
         try:
-            resposta = await self.api_client.get(f"/ranking/da-hora")
+            resposta = await self.api_client.get(f"/votes/rankings", params={"type": type_id})
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        msg = "**🏆 Ranking — Top DA HORA:**\n"
-        for i, usuario_ranking in enumerate(resposta, start=1):
-            usuario = usuario_ranking["user"]
-            msg += f"{i}. **{usuario['name']}** — {usuario_ranking['total_da_hora']} votos\n"
-
+        msg = await self._build_ranking_message(resposta, type_id, icone, titulo)
         await ctx.send(msg)
 
     @commands.command(name="lixos")
     async def lixos(self, ctx, *, argumento: str = None):
+        type_id = 2
+        icone = "🗑️"
+        titulo = "Top Lixos"
+
         if argumento:
             try:
                 membro = await commands.MemberConverter().convert(ctx, argumento)
@@ -72,26 +94,39 @@ class Rankings(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/ranking/lixos/{str(membro.id)}")
+                resposta = await self.api_client.get(f"/votes/users/{membro.id}", params={"type": type_id})
             except ApiError as e:
-                await ctx.send(get_error_message(e.code, e.message))
+                await ctx.send(get_error_message(e.code, e.detail))
                 return
 
-            await ctx.send(f"🗑️ {membro.display_name} recebeu **{resposta['total_lixo']}** votos *LIXO*.")
+            votes = resposta.get("votes", [])
+            total = await self._get_total_votes_for_type(votes, type_id)
+            await ctx.send(f"{icone} {membro.display_name} recebeu **{total}** votos *LIXO*.")
             return
 
         try:
-            resposta = await self.api_client.get(f"/ranking/lixo")
+            resposta = await self.api_client.get(f"/votes/rankings", params={"type": type_id})
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        msg = "**🗑️ Ranking — Top Lixos:**\n"
-        for i, usuario_ranking in enumerate(resposta, 1):
-            usuario = usuario_ranking["user"]
-            msg += f"{i}. **{usuario['name']}** — {usuario_ranking['total_lixo']} votos\n"
-
+        msg = await self._build_ranking_message(resposta, type_id, icone, titulo)
         await ctx.send(msg)
+
+    async def _get_total_votes_for_type(self, votes, type_id: int) -> int:
+        for vote in votes:
+            if vote["type"]["id"] == type_id:
+                return vote.get("totalVotes", 0)
+        return 0
+
+    async def _build_ranking_message(self, resposta, type_id: int, icone: str, titulo: str) -> str:
+        msg = f"**{icone} Ranking — {titulo}:**\n"
+        for usuario_ranking in resposta:
+            usuario = usuario_ranking["user"]
+            votes = usuario_ranking.get("votes", [])
+            total = await self._get_total_votes_for_type(votes, type_id)
+            msg += f"**{usuario['name']}** — {total} votos\n"
+        return msg
 
 async def setup(bot):
     await bot.add_cog(Rankings(bot))
