@@ -22,12 +22,6 @@ class Rankings(commands.Cog):
             await ctx.send("Nenhum voto registrado ainda.")
             return
 
-        icones = {
-            "Da Hora": "🏆",
-            "Lixo": "🗑️",
-            "Não Assisti": "❌"
-        }
-
         msg = "**📊 Ranking Geral:**\n"
         for usuario_votos in resposta:
             usuario = usuario_votos["user"]
@@ -37,7 +31,7 @@ class Rankings(commands.Cog):
 
             # monta a parte de votos dinamicamente, com ícones
             votos_str = " | ".join(
-                f"{icones.get(vote['type']['description'], '')} {vote['type']['description']}: `{vote.get('totalVotes', 0)}`"
+                f"{vote['type']['emoji']} {vote['type']['description']}: `{vote.get('totalVotes', 0)}`"
                 for vote in votes_sorted
             )
 
@@ -45,7 +39,6 @@ class Rankings(commands.Cog):
 
         await ctx.send(msg)
 
-    # Comandos refatorados
     @commands.command(name="da-hora")
     async def da_hora(self, ctx, *, argumento: str = None):
         type_id = 1

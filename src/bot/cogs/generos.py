@@ -22,9 +22,9 @@ class Generos(commands.Cog):
                 resposta = await self.api_client.get(f"/genres/rankings", params={"type": 1})
                 titulo = f"🎞️ Gêneros mais assistidos"
 
-            generos = resposta  # agora já é lista
+            generos = resposta
         except ApiError as e:
-            await ctx.send(f"❌ {e.message}")
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
         if not generos:
@@ -70,7 +70,7 @@ class Generos(commands.Cog):
             resposta = await self.api_client.get("/genres/vote-counts", params={"type": tipo})
             generos = resposta
         except ApiError as e:
-            await ctx.send(f"❌ {e.message}")
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
         if not generos:
@@ -83,6 +83,7 @@ class Generos(commands.Cog):
             nome = genero["genre"]
             votos = genero.get("votes", [])
             total_votos = 0
+
             for voto in votos:
                 if voto["type"]["id"] == tipo:
                     total_votos = voto["totalVotes"]

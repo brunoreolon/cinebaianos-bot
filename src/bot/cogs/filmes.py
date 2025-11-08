@@ -10,9 +10,9 @@ from src.bot.utils.embed_utils import EmbedUtils
 
 
 class FilmeView(View):
-    def __init__(self, filmes, api_client, usuario_alvo, voto, cog, timeout=10):
+    def __init__(self, filmes, api_client, usuario_alvo, voto_id, cog, autor_do_comando, timeout=10):
         super().__init__(timeout=timeout)
-        self.add_item(FilmeDropdown(filmes, api_client, usuario_alvo, voto, cog))
+        self.add_item(FilmeDropdown(filmes, api_client, usuario_alvo, voto_id, cog, autor_do_comando))
         self.filme_selecionado = False
 
     async def on_timeout(self):
@@ -26,7 +26,7 @@ class FilmeView(View):
                 pass
 
 class FilmeDropdown(Select):
-    def __init__(self, filmes, api_client, usuario_alvo, voto, cog):
+    def __init__(self, filmes, api_client, usuario_alvo, voto_id, cog, autor_do_comando):
         options = [
             SelectOption(
                 label=f"{filme['title']} ({filme['releaseDate'][:4]})",
@@ -39,11 +39,12 @@ class FilmeDropdown(Select):
         self.filmes = filmes
         self.api_client = api_client
         self.usuario_alvo = usuario_alvo
-        self.voto = voto
+        self.voto_id = voto_id
         self.cog = cog
+        self.autor_do_comando = autor_do_comando
 
     async def callback(self, interaction):
-        if interaction.user.id != self.usuario_alvo.id:
+        if interaction.user.id != self.autor_do_comando.id:
             await interaction.response.send_message(
                 "❌ Apenas o usuário que iniciou o comando pode selecionar o filme.",
                 ephemeral=True
@@ -53,26 +54,32 @@ class FilmeDropdown(Select):
         if self.view:
             self.view.filme_selecionado = True
 
-        movie_id = int(self.values[0])
-        filme = next(f for f in self.filmes if f['id'] == movie_id)
+        filme_id = int(self.values[0])
+        filme = next(f for f in self.filmes if f['id'] == filme_id)
 
         try:
-            movie = await self.cog._adicionar_filme_api(self.usuario_alvo.id, filme["id"])
+            resposta = await self.cog._adicionar_filme_api(self.usuario_alvo.id, filme["id"], self.voto_id)
+
+            filme = resposta.get('movie', {})
+            voto = (resposta.get('vote') or {}).get('description')
 
             embed = EmbedUtils.filme_adicionado_embed(
-                tmdb_id=movie["id"],
+                tmdb_id=filme.get("id", 0),
                 responsavel=self.usuario_alvo.display_name,
-                titulo=movie["title"],
-                ano=movie["year"],
-                genero=movie.get("genre", "Indefinido"),
-                poster=movie.get("posterPath"),
+                titulo=filme.get("title", "Desconhecido"),
+                ano=filme.get("year", "Desconhecido"),
+                genero=filme.get("genre", "Indefinido"),
+                poster=filme.get("posterPath"),
                 color=discord.Color(0x00ff00)
             )
+
+            if voto:
+                embed.add_field(name="Seu voto", value=voto, inline=False)
 
             await interaction.response.send_message(embed=embed)
         except ApiError as e:
             mensagem = get_error_message(e.code, getattr(e, "detail", str(e)))
-            await interaction.response.send_message(f"❌ {mensagem}", ephemeral=False)
+            await interaction.response.send_message(f"{mensagem}", ephemeral=False)
         finally:
             self.disabled = True
             await interaction.message.edit(view=self.view)
@@ -88,17 +95,42 @@ class Filmes(commands.Cog):
         if not args:
             await ctx.send(
                 "❌ Comando incorreto.\nFormato esperado:\n"
-                "`!adicionar [@usuario opcional] \"Nome do Filme (ano)\" [voto opcional]`\n\n"
+                "`!adicionar \"Nome do Filme (ano)\" [@usuario opcional] [voto opcional]`\n\n"
                 "Exemplo:\n`!adicionar \"Clube da Luta (1999)\" 1`\n"
-                "Ou para outro usuário:\n`!adicionar @usuario \"Clube da Luta (1999)\" 1`"
+                "Ou para outro usuário:\n`!adicionar \"Clube da Luta (1999)\" @usuario 1`"
             )
             return
 
-        if ctx.message.mentions:
-            usuario_alvo = ctx.message.mentions[0]
-            args = args.replace(f"<@{usuario_alvo.id}>", "").replace(f"<@!{usuario_alvo.id}>", "").strip()
-        else:
-            usuario_alvo = ctx.author
+        args_list = args.split()
+        usuario_alvo = ctx.author
+        voto_id = None
+        titulo_parts = []
+
+        # Processa cada parte do args
+        for arg in args_list:
+            # Detecta menção
+            if ctx.message.mentions and any(arg in [f"<@{m.id}>", f"<@!{m.id}>"] for m in ctx.message.mentions):
+                usuario_alvo = ctx.message.mentions[0]
+            # Detecta voto
+            elif arg.isdigit() and voto_id is None:
+                voto_id = int(arg)
+            # Considera como parte do título
+            else:
+                titulo_parts.append(arg)
+
+        # Reconstrói título completo
+        nome_com_ano = " ".join(titulo_parts)
+
+        # Valida formato "Título (Ano)"
+        if "(" not in nome_com_ano or ")" not in nome_com_ano:
+            await ctx.send(
+                "❌ Formato inválido.\nCertifique-se de escrever o nome do filme assim:\n"
+                "`\"Nome do Filme (ano)\"`\n\nExemplo:\n`!adicionar \"Interestelar (2014)\" 1`"
+            )
+            return
+
+        titulo = nome_com_ano[:nome_com_ano.rfind("(")].strip()
+        ano = nome_com_ano[nome_com_ano.rfind("(") + 1:nome_com_ano.rfind(")")].strip()
 
         try:
             resposta = await self.api_client.get(f"/users/{usuario_alvo.id}")
@@ -106,38 +138,14 @@ class Filmes(commands.Cog):
             await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        VOTOS_MAPA = {1: "DA HORA", 2: "LIXO", 3: "NÃO ASSISTI"}
-
-        partes = args.rsplit(" ", 1)
-        voto = None
-
-        if len(partes) == 2 and partes[1].isdigit():
-            voto_int = int(partes[1])
-            if voto_int in VOTOS_MAPA:
-                voto = voto_int
-                nome_com_ano = partes[0]
-            else:
-                await ctx.send("❌ Voto inválido. Use um dos seguintes:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
-                return
-        else:
-            nome_com_ano = args
-
-        # Extrai título e ano
-        if "(" not in nome_com_ano or ")" not in nome_com_ano:
-            await ctx.send("❌ Formato inválido.\nCertifique-se de escrever o nome do filme assim:\n`\"Nome do Filme (ano)\"`\n\nExemplo:\n`!adicionar \"Interestelar (2014)\" 1`")
-            return
-
-        titulo = nome_com_ano[:nome_com_ano.rfind("(")].strip()
-        ano = nome_com_ano[nome_com_ano.rfind("(") + 1:nome_com_ano.rfind(")")].strip()
-
         payload = {
             "title": titulo,
             "year": ano,
-            "chooser": {"discordId": resposta["discordId"]}
+            "chooser": {"discordId": resposta.get("discordId")}
         }
 
-        if voto:
-            payload["vote"] = {"id": voto}
+        if voto_id:
+            payload["vote"] = {"id": voto_id}
 
         # Tenta adicionar o filme
         try:
@@ -150,7 +158,7 @@ class Filmes(commands.Cog):
                     await ctx.send(embed=EmbedUtils.criar_embed_filme_dropdown(filme))
 
                 # 2️⃣ Cria uma única view com dropdown contendo todos os filmes
-                view = FilmeView(filmes, self.api_client, usuario_alvo, voto, self, timeout=10)
+                view = FilmeView(filmes, self.api_client, usuario_alvo, voto_id, self, autor_do_comando=ctx.author, timeout=10)
                 msg = await ctx.send("Escolha o filme que deseja adicionar:", view=view)
                 view.message = msg  # Para poder editar depois no timeout
 
@@ -159,64 +167,64 @@ class Filmes(commands.Cog):
 
             return
 
-        # Se apenas um filme, envia normalmente
-        movie = resposta["movie"]
+        filme = resposta.get('movie', {})
+        voto = (resposta.get('vote') or {}).get('description')
+
         embed = EmbedUtils.filme_adicionado_embed(
-            tmdb_id=movie["id"],
+            tmdb_id=filme.get("id", 0),
             responsavel=usuario_alvo.display_name,
-            titulo=movie["title"],
-            ano=movie["year"],
-            genero=movie.get("genre", "Indefinido"),
-            poster=movie.get("posterPath"),
+            titulo=filme.get("title", "Desconhecido"),
+            ano=filme.get("year", "Desconhecido"),
+            genero=filme.get("genre", "Indefinido"),
+            poster=filme.get("posterPath"),
             color=discord.Color(0x00ff00)
         )
 
         if voto:
-            embed.add_field(name="Seu voto", value=VOTOS_MAPA[voto], inline=False)
+            embed.add_field(name="Seu voto", value=voto, inline=False)
 
         await ctx.send(embed=embed)
 
     @commands.command(name="adicionar-id")
-    async def adicionar_id(self, ctx, tmdb_id: int, voto: int = None):
+    async def adicionar_id(self, ctx, tmdb_id: int, *args):
         usuario_alvo = ctx.author
+        voto_id = None
 
-        # Valida o voto se fornecido
-        VOTOS_MAPA = {
-            1: "DA HORA",
-            2: "LIXO",
-            3: "NÃO ASSISTI"
-        }
-        if voto is not None and voto not in VOTOS_MAPA:
-            await ctx.send("❌ Voto inválido. Use:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
-            return
+        for arg in args:
+            if arg.isdigit() and voto_id is None:
+                voto_id = int(arg)
+            elif ctx.message.mentions and any(arg in [f"<@{m.id}>", f"<@!{m.id}>"] for m in ctx.message.mentions):
+                usuario_alvo = ctx.message.mentions[0]
 
-        # Busca dados do usuário na API
+        discord_id = usuario_alvo.id
+
         try:
-            usuario = await self.api_client.get(f"/users/{usuario_alvo.id}")
+            usuario = await self.api_client.get(f"/users/{discord_id}")
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        # Chama endpoint para adicionar pelo ID
         try:
-            movie = await self._adicionar_filme_api(usuario_alvo.id, tmdb_id, voto)
+            resposta = await self._adicionar_filme_api(discord_id, tmdb_id, voto_id)
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        # Monta embed de resposta
+        filme = resposta.get('movie', {})
+        voto = (resposta.get('vote') or {}).get('description')
+
         embed = EmbedUtils.filme_adicionado_embed(
-            tmdb_id=movie["id"],
+            tmdb_id=filme.get("id", 0),
             responsavel=usuario_alvo.display_name,
-            titulo=movie["title"],
-            ano=movie["year"],
-            genero=movie.get("genre", "Indefinido"),
-            poster=movie.get("posterPath"),
+            titulo=filme.get("title", "Desconhecido"),
+            ano=filme.get("year", "Desconhecido"),
+            genero=filme.get("genre", "Indefinido"),
+            poster=filme.get("posterPath"),
             color=discord.Color(0x00ff00)
         )
 
         if voto:
-            embed.add_field(name="Seu voto", value=VOTOS_MAPA[voto], inline=False)
+            embed.add_field(name="Seu voto", value=voto, inline=False)
 
         await ctx.send(embed=embed)
 
@@ -237,23 +245,23 @@ class Filmes(commands.Cog):
     async def meus_filmes(self, ctx):
         await self.listar_filmes_embed(ctx, ctx.author)
 
-    async def _adicionar_filme_api(self, discordId: str, tmdb_id: int, voto: int = None):
+    async def _adicionar_filme_api(self, discordId: str, tmdb_id: int, voto_id: int = None):
         payload = {
             "movie": {"id": tmdb_id},
             "chooser": {"discordId": discordId},
         }
 
-        if voto:
-            payload["vote"] = {"id": voto}
+        if voto_id:
+            payload["vote"] = {"id": voto_id}
 
-        resposta = await self.api_client.post("/movies", json=payload)
-
-        return resposta["movie"]
+        return await self.api_client.post("/movies", json=payload)
 
     async def listar_filmes_embed(self, ctx, membro_obj=None):
         if membro_obj:
+            discord_id = membro_obj.id
+            display_name = membro_obj.display_name
             try:
-                usuario = await self.api_client.get(f"/users/{str(membro_obj.id)}")
+                usuario = await self.api_client.get(f"/users/{str(discord_id)}")
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
@@ -263,27 +271,27 @@ class Filmes(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/movies/users/{usuario['discordId']}")
+                resposta = await self.api_client.get(f"/movies/users/{discord_id}")
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
 
             if not resposta:
-                await ctx.send(f"{membro_obj.display_name} ainda não adicionou nenhum filme.")
+                await ctx.send(f"{display_name} ainda não adicionou nenhum filme.")
                 return
 
             # Tenta pegar o membro do servidor para usar avatar
-            member = ctx.guild.get_member(membro_obj.id)
+            member = ctx.guild.get_member(discord_id)
             avatar_url = member.display_avatar.url if member else None
 
-            filmes_usuario = resposta["movies"]
+            filmes_usuario = resposta.get('movies', [])
 
             filmes_texto = ""
             for filme in filmes_usuario:
                 filmes_texto += f"`{filme['id']}` - {filme['title']} ({filme['year']})\n"
 
             embed = EmbedUtils.lista_filmes_embed(
-                responsavel=membro_obj.display_name,
+                responsavel=display_name,
                 total_filmes=len(filmes_usuario),
                 color=discord.Color.blurple(),
                 avatar=avatar_url,

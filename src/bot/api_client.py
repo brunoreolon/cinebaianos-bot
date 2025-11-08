@@ -82,7 +82,6 @@ class ApiClient:
                         title=error_data.get("title"),
                         detail=error_data.get("detail"),
                         status=resp.status,
-                        options=None
                     )
 
                 # Limpa tokens locais
@@ -100,7 +99,6 @@ class ApiClient:
                 title="Erro de rede",
                 detail=str(e),
                 status=500,
-                options=None
             )
 
     async def _authenticate(self):
@@ -123,7 +121,6 @@ class ApiClient:
                         title=error_data.get("title", "Falha na autenticação"),
                         detail=error_data.get("detail", "Erro ao autenticar"),
                         status=resp.status,
-                        options=None
                     )
 
                 data = await resp.json()
@@ -136,7 +133,6 @@ class ApiClient:
                         title="Tokens não retornados pela API.",
                         detail="Tokens não retornados pela API.",
                         status=500,
-                        options=None
                     )
 
                 self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
@@ -152,19 +148,17 @@ class ApiClient:
                 title="API indisponível",
                 detail=f"Não foi possível conectar à API ({Config.API_BASE_URL}).",
                 status=503,
-                options=None
             )
 
     async def _refresh_token(self):
         if not self.refresh_token:
             logging.warning("⚠️ Tentativa de refresh sem refresh_token — usuário provavelmente deslogado.")
-        raise ApiError(
-            code="bot_logged_out",
-            title="Bot desconectado",
-            detail="Você precisa se autenticar novamente.",
-            status=401,
-            options=None
-        )
+            raise ApiError(
+                code="bot_logged_out",
+                title="Bot desconectado",
+                detail="Você precisa se autenticar novamente.",
+                status=401,
+            )
 
         async with self._lock:
             logging.info("🔄 Iniciando refresh do token...")
@@ -193,7 +187,6 @@ class ApiClient:
                             title=error_data.get("title"),
                             detail=error_data.get("detail"),
                             status=resp.status,
-                            options=None
                         )
 
                     data = await resp.json()
@@ -211,7 +204,6 @@ class ApiClient:
                     title="API indisponível",
                     detail=f"Não foi possível conectar à API ({Config.API_BASE_URL}) durante refresh do token.",
                     status=503,
-                    options=None
                 )
 
     async def _request(self, method, path, **kwargs):
@@ -235,7 +227,6 @@ class ApiClient:
                 title="API indisponível",
                 detail=f"Não foi possível conectar à API ({Config.API_BASE_URL}).",
                 status=503,
-                options=None
             )
         except aiohttp.ClientError as e:
             logging.error(f"Erro de rede: {e}")
@@ -244,7 +235,6 @@ class ApiClient:
                 title="Erro de rede",
                 detail=str(e),
                 status=500,
-                options=None
             )
 
     async def _handle_response(self, resp):
@@ -262,7 +252,7 @@ class ApiClient:
                 title=error_data.get("title"),
                 detail=error_data.get("detail"),
                 status=resp.status,
-                options=None
+                options=error_data.get("options")
             )
 
         try:

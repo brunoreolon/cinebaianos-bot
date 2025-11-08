@@ -1,5 +1,5 @@
 class ApiError(Exception):
-    def __init__(self, code, title, detail, status, options):
+    def __init__(self, code, title, detail, status, options=None):
         self.code = code
         self.title = title
         self.detail = detail
