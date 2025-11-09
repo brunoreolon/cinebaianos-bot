@@ -28,7 +28,8 @@ class Geral(commands.Cog):
             "• `!meus-filmes` — Lista seus próprios filmes adicionados\n\n"
     
             "**✅ Votação:**\n"
-            "• `!votar [id filme] [voto]` — Vota em um filme (1 = DA HORA, 2 = LIXO, 3 = NÃO ASSISTI)\n"
+            "• `!votar [id filme] [voto]` — Vota em um filme\n"
+            "• `!excluir-voto [id filme]` — Exclui seu voto em um filme\n"
             "• `!opcoes-voto` — Lista os votos dísponíveis\n\n"
     
             "**🏆 Rankings:**\n"

@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-
+from datetime import datetime
 from src.bot.utils.error_utils import get_error_message
 from src.bot.exception.api_error import ApiError
 
@@ -82,6 +82,61 @@ class Votos(commands.Cog):
                        f"🎬 Filme: `{filme}`\n"
                        f"🗳️ Voto: **{descricao_voto}**")
 
+    @commands.command(name="excluir-voto")
+    async def excluir(self, ctx, id_filme: int = None):
+        if id_filme is None:
+            await ctx.send(
+                "❌ Uso incorreto do comando.\n"
+                "Formato correto:\n`!excluir-voto [id_filme]`\n\n"
+            )
+            return
+
+        user_id = ctx.author.id
+
+        try:
+            # 1️⃣ Buscar o voto antes de excluir (para mostrar feedback)
+            votos = await self.api_client.get(f"/votes/users/{user_id}/movies-votes")
+
+            voto_info = next((v for v in votos if v["movie"]["id"] == id_filme), None)
+
+            if not voto_info:
+                await ctx.send("⚠️ Você ainda não votou nesse filme.")
+                return
+
+
+            filme = voto_info["movie"]
+            voto = voto_info["vote"]
+
+            await self.api_client.delete(f"/votes/users/{user_id}/movies/{id_filme}")
+
+            emoji = voto.get("emoji", "🎬")
+            descricao = voto.get("description", "Sem descrição")
+            cor_hex = voto.get("color", "#808080")
+
+            color_int = int(cor_hex.lstrip("#"), 16)  # converter #RRGGBB → int
+            cor_discord = discord.Color(color_int)
+
+            embed = discord.Embed(
+                title="🗑️ Voto removido com sucesso!",
+                description=f"Seu voto em **{filme['title']}** foi excluído.",
+                color=cor_discord
+            )
+
+            embed.add_field(
+                name="Voto removido",
+                value=f"{emoji} **{descricao}**",
+                inline=False
+            )
+
+            embed.set_footer(
+                text=f"TMDB: {filme['tmdbId']} • ID interno: {filme['id']}"
+            )
+
+            await ctx.send(embed=embed)
+
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.detail))
+
     @commands.command(name="votos", help="Mostra os votos de um filme pelo ID.")
     async def votos(self, ctx, id_filme: int = None):
         if id_filme is None:
@@ -113,7 +168,11 @@ class Votos(commands.Cog):
         if movie.get("posterPath"):
             embed_filme.set_image(url=movie["posterPath"])
 
-        embed_filme.set_footer(text=f"TMDB ID: {movie['tmdbId']} • Adicionado em {movie['dateAdded'][:10]}")
+        data_iso = movie['dateAdded'][:10]
+        data_obj = datetime.strptime(data_iso, "%Y-%m-%d")
+        data_formatada = data_obj.strftime("%d/%m/%Y")
+
+        embed_filme.set_footer(text=f"TMDB: {movie['tmdbId']} • Adicionado em {data_formatada}")
 
         # Envia o embed principal do filme
         await ctx.send(embed=embed_filme)

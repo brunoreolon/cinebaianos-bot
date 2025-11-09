@@ -218,6 +218,7 @@ class ApiClient:
                     # Repete a requisição original
                     async with self.session.request(method, url, **kwargs) as retry_resp:
                         return await self._handle_response(retry_resp)
+
                 return await self._handle_response(resp)
 
         except aiohttp.ClientConnectorError:
@@ -265,6 +266,9 @@ class ApiClient:
 
     async def post(self, path, **kwargs):
         return await self._request("POST", path, **kwargs)
+
+    async def delete(self, path, **kwargs):
+        return await self._request("DELETE", path, **kwargs)
 
     async def close(self):
         await self.session.close()

@@ -13,9 +13,10 @@ ERROR_MESSAGES = {
     "movie_not_found": "❌ Filme não encontrado.",
     "multiple_movies_found": "⚠️ Mais de um filme encontrado. Escolha o correto usando `!adicionar-id <id>`",
     "movie_already_registered": "️⚠️ Este filme já foi adicionado.",
-    "vote_already_registered": "⚠️Você já votou neste filme.",
+    "vote_already_registered": "❌️Você já votou neste filme.",
     "vote_type_not_found": "❌ Voto inválido. Para ver os votos disponíveis, use: `!opcoes-voto`",
     "vote_invalid_status": "❌ Voto inválido. Este voto não está disponível para ser usado",
+    "invalid_vote": "❌ Voto não encontrado",
     # "spreadsheet_error": "❌ Erro ao registar na planilha",
     # "column_not_found_error": "❌ Coluna não encontrada"
 }
