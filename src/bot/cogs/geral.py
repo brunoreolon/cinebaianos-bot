@@ -21,7 +21,7 @@ class Geral(commands.Cog):
             "• `!usuarios` — Lista todos os usuários registrados\n\n"
             
             "**🎥 Filmes:**\n"
-            "• `!adicionar \"Nome do Filme (ano)\" [voto opcional]` — Adiciona um filme\n"
+            "• `!adicionar \"Nome do Filme (ano)\" [@usuário opcional]` — Adiciona um filme\n"
             "• `!adicionar-id [id filme]` — Adiciona um filme pelo tmdb id\n"
             "• `!filmes` — Lista todos os filmes por usuário\n"
             "• `!filmes @usuário` — Lista os filmes de um usuário específico\n"
