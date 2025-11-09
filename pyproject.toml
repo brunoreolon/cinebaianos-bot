@@ -1,6 +1,6 @@
 [project]
 name = "CineBaianos-bot"
-version = "1.3.0"
+version = "1.4.0"
 description = "Bot do Discord para registrar filmes e votos dos Cinebaianos, com integração com Google Sheets."
 authors = [ { name = "Bruno Reolon", email = "bruno.reolonn@email.com" } ]
 readme = "README.md"
