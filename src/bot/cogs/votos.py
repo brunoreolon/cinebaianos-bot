@@ -75,12 +75,33 @@ class Votos(commands.Cog):
             await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        filme = resposta["movie"]["title"]
-        descricao_voto = resposta["vote"]["description"]
+        filme = resposta["movie"]
+        voto = resposta["vote"]
 
-        await ctx.send(f"✅ Voto registrado com sucesso!\n"
-                       f"🎬 Filme: `{filme}`\n"
-                       f"🗳️ Voto: **{descricao_voto}**")
+        emoji = voto.get("emoji", "🎬")
+        descricao = voto.get("description", "Sem descrição")
+        cor_hex = voto.get("color", "#00ff00")  # cor padrão verde caso não venha do voto
+
+        color_int = int(cor_hex.lstrip("#"), 16)  # converter #RRGGBB → int
+        cor_discord = discord.Color(color_int)
+
+        embed = discord.Embed(
+            title="✅ Voto registrado com sucesso!",
+            description=f"Seu voto em **{filme['title']}** foi registrado.",
+            color=cor_discord
+        )
+
+        embed.add_field(
+            name="Voto registrado",
+            value=f"{emoji} **{descricao}**",
+            inline=False
+        )
+
+        embed.set_footer(
+            text=f"TMDB: {filme['tmdbId']} • ID interno: {filme['id']}"
+        )
+
+        await ctx.send(embed=embed)
 
     @commands.command(name="excluir-voto")
     async def excluir(self, ctx, id_filme: int = None):
