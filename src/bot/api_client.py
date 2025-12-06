@@ -15,7 +15,8 @@ class ApiClient:
     @classmethod
     async def create(cls):
         session = aiohttp.ClientSession(
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            timeout=aiohttp.ClientTimeout(total=10)
         )
         client = cls(session)
 

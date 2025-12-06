@@ -3,11 +3,11 @@ import discord
 class EmbedUtils:
 
     @staticmethod
-    def filme_adicionado_embed(tmdb_id, responsavel, titulo, ano, genero, poster, color):
+    def filme_adicionado_embed(tmdb_id, responsavel, titulo, ano, generos, poster, color):
         """Gera um embed reutilizável para exibir informações de filme."""
         embed = discord.Embed(
             title=titulo,
-            description=f"Ano: {ano}\nGênero: {genero}",
+            description=f"📅 Ano: {ano}\n🎭 Gênero: **{generos}**",
             color=color
         )
 
@@ -15,8 +15,8 @@ class EmbedUtils:
             embed.set_image(url=poster)
 
         embed.set_footer(
-            text=f"Responsável: {responsavel}\n"
-                 f"ID do Filme: {tmdb_id}"
+            text=f"👤 Responsável: {responsavel}\n"
+                 f"🆔 ID do Filme: {tmdb_id}"
         )
 
         return embed
@@ -47,3 +47,16 @@ class EmbedUtils:
             embed.set_thumbnail(url=filme["posterPath"])
 
         return embed
+
+    @staticmethod
+    def formatar_generos(genres: list[dict]) -> str:
+        """
+        Recebe a lista de gêneros da API e retorna uma string formatada.
+        Se não houver gêneros, retorna 'Indefinido'.
+
+        :param genres: lista de dicts com 'id' e 'name'
+        :return: string de gêneros separados por vírgula ou 'Indefinido'
+        """
+        if not genres:
+            return "Indefinido"
+        return ", ".join(g.get("name", "Indefinido") for g in genres)

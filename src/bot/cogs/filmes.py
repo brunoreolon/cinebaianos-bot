@@ -61,12 +61,14 @@ class FilmeDropdown(Select):
             resposta = await self.cog._adicionar_filme_api(self.usuario_alvo.id, filme["id"])
 
             filme = resposta.get('movie', {})
+            generos = filme.get('genres', [])
+
             embed = EmbedUtils.filme_adicionado_embed(
                 tmdb_id=filme.get("id", 0),
                 responsavel=self.usuario_alvo.display_name,
                 titulo=filme.get("title", "Desconhecido"),
                 ano=filme.get("year", "Desconhecido"),
-                genero=filme.get("genre", "Indefinido"),
+                generos=EmbedUtils.formatar_generos(generos),
                 poster=filme.get("posterPath"),
                 color=discord.Color(0x00ff00)
             )
@@ -215,13 +217,14 @@ class Filmes(commands.Cog):
 
         filme = resposta.get('movie', {})
         filme_id = filme.get('id')
+        generos = filme.get('genres', [])
 
         embed = EmbedUtils.filme_adicionado_embed(
             tmdb_id=filme.get("id", 0),
             responsavel=usuario_alvo.display_name,
             titulo=filme.get("title", "Desconhecido"),
             ano=filme.get("year", "Desconhecido"),
-            genero=filme.get("genre", "Indefinido"),
+            generos=EmbedUtils.formatar_generos(generos),
             poster=filme.get("posterPath"),
             color=discord.Color(0x00ff00)
         )
@@ -263,6 +266,7 @@ class Filmes(commands.Cog):
 
         filme = resposta.get('movie', {})
         filme_id = filme.get('id')
+        generos = filme.get('genres', [])
         voto = (resposta.get('vote') or {}).get('description')
 
         embed = EmbedUtils.filme_adicionado_embed(
@@ -270,7 +274,7 @@ class Filmes(commands.Cog):
             responsavel=usuario_alvo.display_name,
             titulo=filme.get("title", "Desconhecido"),
             ano=filme.get("year", "Desconhecido"),
-            genero=filme.get("genre", "Indefinido"),
+            generos=EmbedUtils.formatar_generos(generos),
             poster=filme.get("posterPath"),
             color=discord.Color(0x00ff00)
         )
@@ -365,10 +369,12 @@ class Filmes(commands.Cog):
             await ctx.send(embed=embed)
         else:
             try:
-                todos_filmes = await self.api_client.get("/movies")
+                resposta = await self.api_client.get("/movies", params={"size": "999"})
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
+
+            todos_filmes = resposta.get("movies", {})
 
             if not todos_filmes:
                 await ctx.send("Nenhum filme registrado ainda.")

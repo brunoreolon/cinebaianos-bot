@@ -3,6 +3,7 @@ from discord.ext import commands
 from datetime import datetime
 from src.bot.utils.error_utils import get_error_message
 from src.bot.exception.api_error import ApiError
+from src.bot.utils.embed_utils import EmbedUtils
 
 
 class Votos(commands.Cog):
@@ -175,12 +176,13 @@ class Votos(commands.Cog):
 
         movie = resposta["movie"]
         votes = resposta.get("votes", [])
+        generos = movie.get("genres", [])
 
         # 🎬 Embed principal com informações do filme
         embed_filme = discord.Embed(
             title=f"{movie['title']} ({movie['year']})",
             description=(
-                f"🎭 **{movie.get('genre', 'Gênero indefinido')}**\n"
+                f"🎭 **{EmbedUtils.formatar_generos(generos)}**\n"
                 f"👤 Escolhido por **{movie['chooser']['name']}**"
             ),
             color=discord.Color.blurple()
