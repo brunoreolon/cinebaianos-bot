@@ -67,7 +67,7 @@ class Links(commands.Cog):
         # Link clicável
         embed.add_field(
             name="🔗 Acessar Web",
-            value="[Clique aqui para abrir a versão Web](https://brunoreolon.github.io/cinebaianos-web/)",
+            value="[Clique aqui para abrir a versão Web](https://cinebaianos.brunoreolon.dev/login.html)",
             inline=False
         )
 

@@ -15,7 +15,7 @@ class Rankings(commands.Cog):
     @commands.command(name="ranking")
     async def ranking(self, ctx):
         try:
-            resposta = await self.api_client.get(f"/votes/rankings")
+            resposta = await self.api_client.get(f"/votes/received")
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.detail))
             return
@@ -78,13 +78,13 @@ class Rankings(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/votes/users/{membro.id}", params={"type": type_id})
+                resposta = await self.api_client.get(f"/users/{membro.id}/votes/received", params={"vote": type_id})
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
 
             votes = resposta.get("votes", [])
-            total = await self._get_total_votes_for_type(votes, type_id)
+            total = votes[0].get("totalVotes", 0)
 
             embed = Embed(
                 title=f"{icone} {membro.display_name}",
@@ -98,7 +98,7 @@ class Rankings(commands.Cog):
 
         # Ranking completo
         try:
-            resposta = await self.api_client.get(f"/votes/rankings", params={"type": type_id})
+            resposta = await self.api_client.get(f"/votes/received", params={"type": type_id})
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.detail))
             return
@@ -164,13 +164,13 @@ class Rankings(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/votes/users/{membro.id}", params={"type": type_id})
+                resposta = await self.api_client.get(f"/users/{membro.id}/votes/received", params={"vote": type_id})
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
 
             votes = resposta.get("votes", [])
-            total = await self._get_total_votes_for_type(votes, type_id)
+            total = votes[0].get("totalVotes", 0)
 
             embed = Embed(
                 title=f"{icone} {membro.display_name}",
@@ -184,7 +184,7 @@ class Rankings(commands.Cog):
 
         # Ranking completo
         try:
-            resposta = await self.api_client.get(f"/votes/rankings", params={"type": type_id})
+            resposta = await self.api_client.get(f"/votes/given", params={"type": type_id})
         except ApiError as e:
             await ctx.send(get_error_message(e.code, e.detail))
             return

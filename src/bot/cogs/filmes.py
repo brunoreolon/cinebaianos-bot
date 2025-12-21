@@ -60,7 +60,7 @@ class FilmeDropdown(Select):
         try:
             resposta = await self.cog._adicionar_filme_api(self.usuario_alvo.id, filme["id"])
 
-            filme = resposta.get('movie', {})
+            filme = resposta
             generos = filme.get('genres', [])
 
             embed = EmbedUtils.filme_adicionado_embed(
@@ -264,7 +264,7 @@ class Filmes(commands.Cog):
             await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        filme = resposta.get('movie', {})
+        filme = resposta
         filme_id = filme.get('id')
         generos = filme.get('genres', [])
         voto = (resposta.get('vote') or {}).get('description')
@@ -339,7 +339,12 @@ class Filmes(commands.Cog):
                 return
 
             try:
-                resposta = await self.api_client.get(f"/movies/users/{discord_id}")
+                params = {
+                    "size": 999,
+                    "chooserDiscordId": str(discord_id)
+                }
+
+                resposta = await self.api_client.get("/movies", params=params)
             except ApiError as e:
                 await ctx.send(get_error_message(e.code, e.detail))
                 return
