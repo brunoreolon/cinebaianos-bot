@@ -17,8 +17,8 @@ ERROR_MESSAGES = {
     "vote_type_not_found": "❌ Voto inválido. Para ver os votos disponíveis, use: `!opcoes-voto`",
     "vote_invalid_status": "❌ Voto inválido. Este voto não está disponível para ser usado",
     "invalid_vote": "❌ Voto não encontrado",
-    # "spreadsheet_error": "❌ Erro ao registar na planilha",
-    # "column_not_found_error": "❌ Coluna não encontrada"
+    "invalid_credentials": "❌ Credenciais inválidas",
+    "user_not_authorized": "❌ Você não tem autorização para modificar este recurso"
 }
 
 def get_error_message(code, fallback):
