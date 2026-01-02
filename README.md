@@ -63,7 +63,7 @@ Este é um projeto pessoal feito entre amigos para **organizar, votar e ranquear
   DISCORD_TOKEN=
   BOT_USERNAME=
   BOT_PASSWORD=
-  AUTHORIZED_DISCORD_IDS=123456789012345678,987654321098765432
+  AUTHORIZED_DISCORD_IDS=000000000000000001,000000000000000002
   API_BASE_URL=http://localhost:8080/api
     ```
   **Nota:** `AUTHORIZED_DISCORD_IDS` deve conter os IDs do Discord autorizados a rodar comandos de admin, separados por vírgula.
@@ -74,7 +74,7 @@ Siga os passos abaixo para rodar o bot localmente no terminal:
 
 ```powershell
 # 1️⃣ Clonar o repositório e entrar na pasta
-git clone https://github.com/seu-usuario/cinebaianos-bot.git
+git clone https://github.com/brunoreolon/cinebaianos-bot.git
 cd cinebaianos-bot
 
 # 2️⃣ Criar o virtual environment
@@ -91,3 +91,4 @@ pip install -r requirements.txt
 
 # 6️⃣ Subir o bot
 python -m src.bot.bot
+```
