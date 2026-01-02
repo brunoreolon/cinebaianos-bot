@@ -67,3 +67,27 @@ Este é um projeto pessoal feito entre amigos para **organizar, votar e ranquear
   API_BASE_URL=http://localhost:8080/api
     ```
   **Nota:** `AUTHORIZED_DISCORD_IDS` deve conter os IDs do Discord autorizados a rodar comandos de admin, separados por vírgula.
+
+## 🚀 Iniciar o Bot
+
+Siga os passos abaixo para rodar o bot localmente no terminal:
+
+```powershell
+# 1️⃣ Clonar o repositório e entrar na pasta
+git clone https://github.com/seu-usuario/cinebaianos-bot.git
+cd cinebaianos-bot
+
+# 2️⃣ Criar o virtual environment
+python -m venv .venv
+
+# 3️⃣ Ativar o virtual environment (Windows - PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# 4️⃣ Instalar dependências
+pip install -r requirements.txt
+
+# 5️⃣ Criar e configurar o arquivo .env
+# (crie manualmente na raiz do projeto com as variáveis necessárias, conforme requisitos)
+
+# 6️⃣ Subir o bot
+python -m src.bot.bot
