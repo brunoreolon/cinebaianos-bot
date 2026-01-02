@@ -1,7 +1,9 @@
+import discord
 from discord.ext import commands
-
+from datetime import datetime
 from src.bot.utils.error_utils import get_error_message
 from src.bot.exception.api_error import ApiError
+from src.bot.utils.embed_utils import EmbedUtils
 
 
 class Votos(commands.Cog):
@@ -10,47 +12,224 @@ class Votos(commands.Cog):
         self.bot = bot
         self.api_client = bot.api_client
 
+    @commands.command(name="opcoes-voto")
+    async def opcoes_voto(self, ctx):
+        """
+        Lista todas as opções de voto disponíveis com emoji e cor.
+        """
+        try:
+            resposta = await self.api_client.get("/vote-types")
+
+            if not resposta:
+                await ctx.send("❌ Nenhuma opção de voto encontrada.")
+                return
+
+            # Cria embed principal
+            embed = discord.Embed(
+                title="🎬 Opções de Voto",
+                description="Confira abaixo as opções de voto disponíveis:",
+                color=discord.Color.blue()
+            )
+
+            for voto in resposta:
+                voto_id = voto.get("id", "N/A")
+                nome = voto.get("description", "Desconhecido")
+                emoji = voto.get("emoji", "")
+                cor_str = voto.get("color", "#000000")
+
+                # Converte a cor hexadecimal para int
+                try:
+                    cor = int(cor_str.replace("#", ""), 16)
+                except ValueError:
+                    cor = 0x000000
+
+                # Adiciona cada voto como um campo
+                embed.add_field(
+                    name=f"{emoji} {nome} (ID: {voto_id})",
+                    value=f"Cor: `{cor_str}`",
+                    inline=False
+                )
+
+            await ctx.send(embed=embed)
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.detail))
+
     @commands.command(name="votar")
-    async def votar(self, ctx, id_filme: int = None, voto: int = None):
-        # Validação dos argumentos
-        if id_filme is None or voto is None:
+    async def votar(self, ctx, id_filme: int = None, voto_id: int = None):
+        if id_filme is None or voto_id is None:
             await ctx.send(
                 "❌ Uso incorreto do comando.\n"
                 "Formato correto:\n`!votar [id_filme] [voto]`\n\n"
-                "**Votos possíveis:**\n"
-                "`1 - DA HORA`\n"
-                "`2 - LIXO`\n"
-                "`3 - NÃO ASSISTI`"
+                "💡 Para ver os votos disponíveis, use: `!opcoes-voto`"
             )
             return
 
-        VOTOS_MAPA = {
-            1: "DA HORA",
-            2: "LIXO",
-            3: "NÃO ASSISTI"
-        }
-
-        if voto not in VOTOS_MAPA:
-            await ctx.send("⚠️ Voto inválido. Use:\n`1 - DA HORA`\n`2 - LIXO`\n`3 - NÃO ASSISTI`")
-            return
-
         payload = {
-            "voter_id": str(ctx.author.id),
-            "movie_id": id_filme,
-            "vote": voto
+            "voter": {"discordId": str(ctx.author.id)},
+            "movie": {"id": id_filme},
+            "vote": voto_id
         }
 
         try:
             resposta = await self.api_client.post(f"/votes", json=payload)
         except ApiError as e:
-            await ctx.send(get_error_message(e.code, e.message))
+            await ctx.send(get_error_message(e.code, e.detail))
             return
 
-        aba_responsavel = resposta["movie"]["responsible"]["tab"]
-        filme = resposta["movie"]["title"]
-        voto_texto = VOTOS_MAPA[voto]
+        filme = resposta["movie"]
+        voto = resposta["vote"]
 
-        await ctx.send(f"✅ Voto registrado com sucesso!\n🗂️ Aba: {aba_responsavel}\n🎬 Filme: `{filme}`\n🗳️ Voto: **{voto_texto}**")
+        emoji = voto.get("emoji", "🎬")
+        descricao = voto.get("description", "Sem descrição")
+        cor_hex = voto.get("color", "#00ff00")  # cor padrão verde caso não venha do voto
+
+        color_int = int(cor_hex.lstrip("#"), 16)  # converter #RRGGBB → int
+        cor_discord = discord.Color(color_int)
+
+        embed = discord.Embed(
+            title="✅ Voto registrado com sucesso!",
+            description=f"Seu voto em **{filme['title']}** foi registrado.",
+            color=cor_discord
+        )
+
+        embed.add_field(
+            name="Voto registrado",
+            value=f"{emoji} **{descricao}**",
+            inline=False
+        )
+
+        embed.set_footer(
+            text=f"TMDB: {filme['tmdbId']} • ID interno: {filme['id']}"
+        )
+
+        await ctx.send(embed=embed)
+
+    @commands.command(name="excluir-voto")
+    async def excluir(self, ctx, id_filme: int = None):
+        if id_filme is None:
+            await ctx.send(
+                "❌ Uso incorreto do comando.\n"
+                "Formato correto:\n`!excluir-voto [id_filme]`\n\n"
+            )
+            return
+
+        user_id = ctx.author.id
+
+        try:
+            # 1️⃣ Buscar o voto antes de excluir (para mostrar feedback)
+            votos = await self.api_client.get(f"/votes/users/{user_id}/movies-votes")
+
+            voto_info = next((v for v in votos if v["movie"]["id"] == id_filme), None)
+
+            if not voto_info:
+                await ctx.send("⚠️ Você ainda não votou nesse filme.")
+                return
+
+
+            filme = voto_info["movie"]
+            voto = voto_info["vote"]
+
+            await self.api_client.delete(f"/votes/users/{user_id}/movies/{id_filme}")
+
+            emoji = voto.get("emoji", "🎬")
+            descricao = voto.get("description", "Sem descrição")
+            cor_hex = voto.get("color", "#808080")
+
+            color_int = int(cor_hex.lstrip("#"), 16)  # converter #RRGGBB → int
+            cor_discord = discord.Color(color_int)
+
+            embed = discord.Embed(
+                title="🗑️ Voto removido com sucesso!",
+                description=f"Seu voto em **{filme['title']}** foi excluído.",
+                color=cor_discord
+            )
+
+            embed.add_field(
+                name="Voto removido",
+                value=f"{emoji} **{descricao}**",
+                inline=False
+            )
+
+            embed.set_footer(
+                text=f"TMDB: {filme['tmdbId']} • ID interno: {filme['id']}"
+            )
+
+            await ctx.send(embed=embed)
+
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.detail))
+
+    @commands.command(name="votos", help="Mostra os votos de um filme pelo ID.")
+    async def votos(self, ctx, id_filme: int = None):
+        if id_filme is None:
+            await ctx.send(
+                "❌ Uso incorreto do comando.\n"
+                "Formato correto:\n`!votos [id_filme]`\n\n"
+            )
+            return
+
+        try:
+            resposta = await self.api_client.get(f"/votes/{id_filme}/votes")
+        except ApiError as e:
+            await ctx.send(get_error_message(e.code, e.detail))
+            return
+
+        movie = resposta["movie"]
+        votes = resposta.get("votes", [])
+        generos = movie.get("genres", [])
+
+        # 🎬 Embed principal com informações do filme
+        embed_filme = discord.Embed(
+            title=f"{movie['title']} ({movie['year']})",
+            description=(
+                f"🎭 **{EmbedUtils.formatar_generos(generos)}**\n"
+                f"👤 Escolhido por **{movie['chooser']['name']}**"
+            ),
+            color=discord.Color.blurple()
+        )
+
+        if movie.get("posterPath"):
+            embed_filme.set_image(url=movie["posterPath"])
+
+        data_iso = movie['dateAdded'][:10]
+        data_obj = datetime.strptime(data_iso, "%Y-%m-%d")
+        data_formatada = data_obj.strftime("%d/%m/%Y")
+
+        embed_filme.set_footer(text=f"TMDB: {movie['tmdbId']} • Adicionado em {data_formatada}")
+
+        # Envia o embed principal do filme
+        await ctx.send(embed=embed_filme)
+
+        # 🗳️ Se não há votos, informa
+        if not votes:
+            await ctx.send("📭 Nenhum voto registrado para este filme ainda.")
+            return
+
+        # Cria um embed individual para cada voto
+        for v in votes:
+            voter = v["voter"]
+            vote = v["vote"]
+            desc = vote["description"]
+            cor = vote["color"]
+            emoji = vote["emoji"]
+
+            # Procura o membro no cache do servidor
+            member = discord.utils.get(ctx.guild.members, id=int(voter["discordId"]))
+            avatar_url = member.display_avatar.url if member else None
+
+            voto_embed = discord.Embed(
+                description=f"{emoji} votou **{desc.upper()}**",
+                color=discord.Color(int(cor.replace("#", ""), 16))
+            )
+
+            # Coloca o avatar à esquerda do nome usando set_author
+            if member:
+                voto_embed.set_author(name=member.display_name, icon_url=avatar_url)
+            else:
+                voto_embed.set_author(name=voter["name"])  # fallback caso não encontrado
+
+            await ctx.send(embed=voto_embed)
+
 
 async def setup(bot):
     await bot.add_cog(Votos(bot))

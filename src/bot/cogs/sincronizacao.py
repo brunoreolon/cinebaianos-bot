@@ -12,6 +12,9 @@ class Sincronizacao(commands.Cog):
     @commands.command(name='sincronizar')
     @commands.has_permissions(administrator=True)
     async def sincronizar(self, ctx):
+        await ctx.send("⚠️ O comando **sincronizar** foi desativado e não está mais disponível.")
+        return
+
         await ctx.send("🔄 Iniciando **sincronização** com a planilha... Isso pode levar alguns segundos.")
 
         try:
@@ -20,7 +23,7 @@ class Sincronizacao(commands.Cog):
             try:
                 resposta = await self.api_client.post("/sync")
             except ApiError as e:
-                await ctx.send(get_error_message(e.code, e.message))
+                await ctx.send(get_error_message(e.code, e.detail))
                 return
 
             elapsed = int(resposta["execution_time_seconds"])

@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    BOT_API_TOKEN = os.getenv("BOT_API_TOKEN")
-    BASE_URL = os.getenv("API_BASE_URL")
-    TOKEN = os.getenv("DISCORD_TOKEN")
+    BOT_USERNAME = os.getenv("BOT_USERNAME")
+    BOT_PASSWORD = os.getenv("BOT_PASSWORD")
+    API_BASE_URL = os.getenv("API_BASE_URL")
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    AUTHORIZED_DISCORD_IDS = list(map(int, os.getenv("AUTHORIZED_DISCORD_IDS", "").split(",")))
